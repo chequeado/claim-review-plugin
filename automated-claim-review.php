@@ -11,11 +11,97 @@ Author URI: https://example.com
 // Include the negacion_a_afirmacion_simple function
 include_once(plugin_dir_path(__FILE__) . 'negacion_a_afirmacion_simple.php');
 
+register_activation_hook(__FILE__, 'claim_review_plugin_activate');
+
+// Hook to uninstall the plugin
+register_uninstall_hook(__FILE__, 'claim_review_plugin_uninstall');
+
+function claim_review_plugin_activate(){
+    claim_review_create_table();
+    claim_review_initial_data();
+}
+
+function claim_review_create_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'claim_review_options';
+
+    // Check if the table already exists
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+
+        // SQL statement to create the table
+        $charset_collate = $wpdb->get_charset_collate();
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            name tinytext NOT NULL,
+            tag text NOT NULL,
+            PRIMARY KEY  (id)
+        ) $charset_collate;";
+
+        // Use dbDelta to safely create or update the table
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+
+        // Optionally: add an initial record or other setup tasks here
+    }
+}
+
+function claim_review_initial_data() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'claim_review_options';
+
+    // Check if 'John Doe' already exists in the table
+    $existing_entry_debunk = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE name = %s", 'debunk'));
+
+    if ($existing_entry_debunk == 0) {
+        
+        $wpdb->insert(
+            $table_name,
+            array(
+                'name' => 'debunk',
+                'tag'  => 'debunk'
+            ),
+            array(
+                '%s',  // For string (name)
+                '%s'   // For string (tag)
+            )
+        );
+    }
+
+    $existing_entry_verification = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE name = %s", 'verification'));
+
+    if ($existing_entry_verification == 0) {
+        
+        $wpdb->insert(
+            $table_name,
+            array(
+                'name' => 'verification',
+                'tag'  => 'verification'
+            ),
+            array(
+                '%s',  // For string (name)
+                '%s'   // For string (tag)
+            )
+        );
+    }
+
+    // Insert other hardcoded data (repeat for other entries if necessary)
+}
+
+function claim_review_plugin_uninstall() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'claim_review_options';
+
+    // Drop the custom table if it exists
+    $wpdb->query("DROP TABLE IF EXISTS $table_name");
+}
+
 // Add settings page
 function crg_add_settings_page() {
     add_options_page('ClaimReview Generator Settings', 'ClaimReview Generator', 'manage_options', 'crg-settings', 'crg_render_settings_page');
 }
 add_action('admin_menu', 'crg_add_settings_page');
+
+
 
 // Render settings page
 function crg_render_settings_page() {
@@ -29,6 +115,45 @@ function crg_render_settings_page() {
             submit_button();
             ?>
         </form>
+    </div>
+    <?php
+}
+
+// Hook to add the submenu
+//add_action('admin_menu', 'custom_submenu_page');
+
+// Function to add submenu
+function custom_submenu_page() {
+    add_submenu_page(
+        'claim-review-manager',   // Parent slug (Settings menu)
+        'Custom Submenu 1',        // Page title
+        'Custom Submenu 1',        // Menu title
+        'manage_options',        // Capability
+        'admin.php?page=custom-submenu-slug',   // Menu slug
+        'custom_submenu_callback'// Callback function
+    );
+}
+
+//add_action('admin_menu', 'custom_submenu_page_2');
+
+// Function to add submenu
+function custom_submenu_page_2() {
+    add_submenu_page(
+        'claim-review-manager',   // Parent slug (Settings menu)
+        'Custom Submenu 2',        // Page title
+        'Custom Submenu 2',        // Menu title
+        'manage_options',        // Capability
+        'admin.php?page=custom-submenu-slug',   // Menu slug
+        'custom_submenu_callback'// Callback function
+    );
+}
+
+// Callback function to display the submenu page content
+function custom_submenu_callback()  {
+    ?>
+    <div class="wrap">
+        <h1>Welcome to the Custom Submenu Page</h1>
+        <p>This is where you can customize the content of your submenu.</p>
     </div>
     <?php
 }
@@ -186,7 +311,20 @@ function crm_render_manager_page() {
 
 // Render the table of posts
 function crm_render_posts_table($type) {
-    $tag = $type === 'debunk' ? get_option('crg_debunk_tag') : get_option('crg_fact_check_tag');
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'claim_review_options';
+    $debunk_default = $wpdb->get_results("SELECT tag FROM $table_name where name = 'debunk'");
+    $verification_default = $wpdb->get_results("SELECT tag FROM $table_name where name = 'verification'");
+    //$tag = $type;
+    //$tag === 'debunk' ? get_option('crg_debunk_tag') : get_option('crg_fact_check_tag');
+
+    if($type === 'debunk'){
+        $tag = get_option('crg_debunk_tag');
+        //$tag = $debunk_default[0]->tag;
+    } else {
+        $tag = get_option('crg_fact_check_tag');
+        //$tag = $verification_default[0]->tag;
+    }
     $posts = get_posts(array(
         'numberposts' => -1,
         'post_type' => 'post',
@@ -202,11 +340,61 @@ function crm_render_posts_table($type) {
         echo '<tr>';
         echo '<td>' . esc_html($post->post_title) . '</td>';
         echo '<td>' . esc_html($calculated_claim_review) . '</td>';
-        echo '<td><textarea id="claim-review-' . $post->ID . '" rows="3" cols="50">' . esc_textarea($manual_claim_review) . '</textarea></td>';
+        //echo '<td><textarea id="claim-review-' . $post->ID . '" rows="3" cols="50">' . esc_textarea($manual_claim_review) . '</textarea></td>';
+        echo '<td><input type="text" id="claim-review-' . $post->ID . '" rows="3" cols="50">' . esc_textarea($manual_claim_review) . '</input></td>';
         echo '<td><button class="button save-claim-review" data-post-id="' . $post->ID . '">Save</button></td>';
         echo '</tr>';
     }
     echo '</tbody></table>';
+
+    
+
+    
+
+    /*echo "<form method='post' action=''>
+        <label for='debunk'>Tag for debunks</label>
+        <input type='text' id='debunk' name='debunk' value='" . $debunk_default[0]->tag . "' required />
+
+        <label for='verification'>Tag for verification</label>
+        <input type='text' id='verification' name='verification' value='" . $verification_default[0]->tag . "' required />
+
+        <input type='submit' name='tags_submit' value='Save' />
+    </form>";*/
+}
+
+function claim_review_handle_form() {
+    global $wpdb;
+
+    if (isset($_POST['tags_submit'])) {
+        $debunk = sanitize_text_field($_POST['debunk']);
+        $verification = sanitize_text_field($_POST['verification']);
+        // Get table name
+        $table_name = $wpdb->prefix . 'claim_review_options';
+
+        if($debunk)
+
+        $wpdb->update(
+            $table_name,
+            array(
+                'tag' => $debunk
+            ),
+            array('name' => 'debunk'),  // Where clause
+            array( '%s'),       
+            array('%s')              
+        );
+
+        $wpdb->update(
+            $table_name,
+            array(
+                'tag' => $verification
+            ),
+            array('name' => 'verification'),  // Where clause
+            array( '%s'),       
+            array('%s')              
+        );
+        
+    }
+    
 }
 
 // AJAX handler for saving manual claim review
@@ -231,7 +419,9 @@ function crg_rating_method_callback() {
         <option value='content' " . selected($method, 'content', false) . ">Content</option>
         <option value='custom' " . selected($method, 'custom', false) . ">Custom Function</option>
     </select>";
-}
+
+    
+};
 
 function crg_rating_custom_function_callback() {
     $function = get_option('crg_rating_custom_function', '');
@@ -344,12 +534,14 @@ function crg_generate_claim_review_text($post) {
         $claim_reviewed = isset($parts[1]) ? trim($parts[1]) : $post_title;
         // Remove quote marks
         $claim_reviewed = str_replace('"', '', $claim_reviewed);
+        //return var_dump($parts);
     } else {
         // For debunks, use negacion_a_afirmacion_simple
         $claim_reviewed = negacion_a_afirmacion_simple($post_title);
         if ($claim_reviewed === null) {
             $claim_reviewed = $post_title; // Use original title if no transformation
         }
+        //return 'si';
     }
 
     return $claim_reviewed;
@@ -429,4 +621,7 @@ function crg_generate_claim_review($content) {
 }
 
 add_filter('the_content', 'crg_generate_claim_review');
+
+// Hook to process form data on POST request
+add_action('init', 'claim_review_handle_form');
 ?>
