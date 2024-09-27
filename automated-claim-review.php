@@ -11,89 +11,6 @@ Author URI: https://example.com
 // Include the negacion_a_afirmacion_simple function
 include_once(plugin_dir_path(__FILE__) . 'negacion_a_afirmacion_simple.php');
 
-register_activation_hook(__FILE__, 'claim_review_plugin_activate');
-
-// Hook to uninstall the plugin
-register_uninstall_hook(__FILE__, 'claim_review_plugin_uninstall');
-
-function claim_review_plugin_activate(){
-    claim_review_create_table();
-    claim_review_initial_data();
-}
-
-function claim_review_create_table() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'claim_review_options';
-
-    // Check if the table already exists
-    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
-
-        // SQL statement to create the table
-        $charset_collate = $wpdb->get_charset_collate();
-        $sql = "CREATE TABLE $table_name (
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            name tinytext NOT NULL,
-            tag text NOT NULL,
-            PRIMARY KEY  (id)
-        ) $charset_collate;";
-
-        // Use dbDelta to safely create or update the table
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-
-        // Optionally: add an initial record or other setup tasks here
-    }
-}
-
-function claim_review_initial_data() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'claim_review_options';
-
-    // Check if 'John Doe' already exists in the table
-    $existing_entry_debunk = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE name = %s", 'debunk'));
-
-    if ($existing_entry_debunk == 0) {
-        
-        $wpdb->insert(
-            $table_name,
-            array(
-                'name' => 'debunk',
-                'tag'  => 'debunk'
-            ),
-            array(
-                '%s',  // For string (name)
-                '%s'   // For string (tag)
-            )
-        );
-    }
-
-    $existing_entry_verification = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE name = %s", 'verification'));
-
-    if ($existing_entry_verification == 0) {
-        
-        $wpdb->insert(
-            $table_name,
-            array(
-                'name' => 'verification',
-                'tag'  => 'verification'
-            ),
-            array(
-                '%s',  // For string (name)
-                '%s'   // For string (tag)
-            )
-        );
-    }
-
-    // Insert other hardcoded data (repeat for other entries if necessary)
-}
-
-function claim_review_plugin_uninstall() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'claim_review_options';
-
-    // Drop the custom table if it exists
-    $wpdb->query("DROP TABLE IF EXISTS $table_name");
-}
 
 // Add settings page
 function crg_add_settings_page() {
@@ -119,47 +36,10 @@ function crg_render_settings_page() {
     <?php
 }
 
-// Hook to add the submenu
-//add_action('admin_menu', 'custom_submenu_page');
-
-// Function to add submenu
-function custom_submenu_page() {
-    add_submenu_page(
-        'claim-review-manager',   // Parent slug (Settings menu)
-        'Custom Submenu 1',        // Page title
-        'Custom Submenu 1',        // Menu title
-        'manage_options',        // Capability
-        'admin.php?page=custom-submenu-slug',   // Menu slug
-        'custom_submenu_callback'// Callback function
-    );
-}
-
-//add_action('admin_menu', 'custom_submenu_page_2');
-
-// Function to add submenu
-function custom_submenu_page_2() {
-    add_submenu_page(
-        'claim-review-manager',   // Parent slug (Settings menu)
-        'Custom Submenu 2',        // Page title
-        'Custom Submenu 2',        // Menu title
-        'manage_options',        // Capability
-        'admin.php?page=custom-submenu-slug',   // Menu slug
-        'custom_submenu_callback'// Callback function
-    );
-}
-
-// Callback function to display the submenu page content
-function custom_submenu_callback()  {
-    ?>
-    <div class="wrap">
-        <h1>Welcome to the Custom Submenu Page</h1>
-        <p>This is where you can customize the content of your submenu.</p>
-    </div>
-    <?php
-}
-
 // Register settings
 function crg_register_settings() {
+    register_setting('crg_settings', 'crg_post_type');
+    register_setting('crg_settings', 'crg_taxonomy');
     register_setting('crg_settings', 'crg_fact_check_tag');
     register_setting('crg_settings', 'crg_debunk_tag');
     register_setting('crg_settings', 'crg_organization_name');
@@ -174,9 +54,15 @@ function crg_register_settings() {
     register_setting('crg_settings', 'crg_rating_url_patterns');
     register_setting('crg_settings', 'crg_rating_category_patterns');
     register_setting('crg_settings', 'crg_rating_content_patterns');
+    register_setting('crg_settings', 'crg_ratings', [
+        'sanitize_callback' => 'crg_sanitize_ratings'
+    ]);
+   
 
     add_settings_section('crg_main_section', 'Main Settings', null, 'crg-settings');
 
+    add_settings_field('crg_post_type', 'Select Post Type', 'crg_post_type_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_taxonomy', 'Select Taxonomy', 'crg_taxonomy_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_fact_check_tag', 'Fact-check Tag', 'crg_fact_check_tag_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_debunk_tag', 'Debunk Tag', 'crg_debunk_tag_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_organization_name', 'Organization Name', 'crg_organization_name_callback', 'crg-settings', 'crg_main_section');
@@ -191,6 +77,13 @@ function crg_register_settings() {
     add_settings_field('crg_rating_url_patterns', 'URL Rating Patterns', 'crg_rating_url_patterns_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_rating_category_patterns', 'Category Rating Patterns', 'crg_rating_category_patterns_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_rating_content_patterns', 'Content Rating Patterns', 'crg_rating_content_patterns_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field(
+        'crg_ratings', 
+        'Califications', 
+        'crg_ratings_callback', 
+        'crg-settings', 
+        'crg_main_section'
+    );   
 }
 add_action('admin_init', 'crg_register_settings');
 
@@ -240,6 +133,99 @@ function crg_false_alternate_name_callback() {
     echo "<input type='text' name='crg_false_alternate_name' value='$false_name' />";
 }
 
+function crg_post_type_callback() {
+    $selected_post_type = get_option('crg_post_type');
+    $post_types = get_post_types(array('public' => true), 'objects');
+
+    echo '<select id="crg_post_type" name="crg_post_type">';
+    foreach ($post_types as $post_type) {
+        $selected = ($selected_post_type === $post_type->name) ? 'selected="selected"' : '';
+        echo '<option value="' . esc_attr($post_type->name) . '" ' . $selected . '>' . esc_html($post_type->label) . '</option>';
+    }
+    echo '</select>';
+}
+
+function crg_taxonomy_callback() {
+    $selected_taxonomy = get_option('crg_taxonomy');
+    $taxonomies = get_taxonomies(array('public' => true), 'objects');
+
+    echo '<select id="crg_taxonomy" name="crg_taxonomy">';
+    foreach ($taxonomies as $taxonomy) {
+        $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
+        echo '<option value="' . esc_attr($taxonomy->name) . '" ' . $selected . '>' . esc_html($taxonomy->label) . '</option>';
+    }
+    echo '</select>';
+}
+
+function crg_sanitize_ratings($input) {
+    if (!is_array($input)) {
+        return [];
+    }
+
+    // Loop through the array and sanitize each entry
+    $output = [];
+    foreach ($input as $key => $value) {
+        $output[$key] = sanitize_text_field($value);
+    }
+
+    return $output;
+}
+
+function crg_ratings_callback() {
+    $ratings = get_option('crg_ratings', []);
+
+    // Display a label and the button for adding new rows
+    ?>
+    <div id="crg_ratings_container">
+        <?php
+        if (!empty($ratings)) {
+            foreach ($ratings as $index => $rating) {
+                ?>
+                <div class="crg_rating_row">
+                    <input type="text" name="crg_ratings[]" value="<?php echo esc_attr($rating); ?>" />
+                    <button class="button remove-rating">Remove</button>
+                </div>
+                <?php
+            }
+        } else {
+            // Display an empty row if no ratings are present
+            ?>
+            <div class="crg_rating_row">
+                <input type="text" name="crg_ratings[]" value="" />
+                <button class="button remove-rating">Remove</button>
+            </div>
+            <?php
+        }
+        ?>
+    </div>
+    <button class="button add-rating">Add Calification</button>
+
+    <script>
+    jQuery(document).ready(function($) {
+        // Add new rating row
+        $('.add-rating').click(function(e) {
+            e.preventDefault();
+            var newRow = '<div class="crg_rating_row"><input type="text" name="crg_ratings[]" value="" /><button class="button remove-rating">Remove</button></div>';
+            $('#crg_ratings_container').append(newRow);
+        });
+
+        // Remove rating row
+        $(document).on('click', '.remove-rating', function(e) {
+            e.preventDefault();
+            $(this).parent().remove();
+        });
+    });
+    </script>
+    <style>
+        .crg_rating_row {
+            margin-bottom: 10px;
+        }
+        .crg_rating_row input {
+            width: 300px;
+        }
+    </style>
+    <?php
+}
 
 // Add the management page to the admin menu
 function crm_add_menu_page() {
@@ -271,6 +257,8 @@ function crm_render_manager_page() {
             <?php crm_render_posts_table('verification'); ?>
         </div>
     </div>
+
+    <p><?php var_dump(get_option( 'crg_ratings' )[0]);?></p>
     <script>
         jQuery(document).ready(function($) {
             // Tab switching
@@ -311,24 +299,26 @@ function crm_render_manager_page() {
 
 // Render the table of posts
 function crm_render_posts_table($type) {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'claim_review_options';
-    $debunk_default = $wpdb->get_results("SELECT tag FROM $table_name where name = 'debunk'");
-    $verification_default = $wpdb->get_results("SELECT tag FROM $table_name where name = 'verification'");
-    //$tag = $type;
-    //$tag === 'debunk' ? get_option('crg_debunk_tag') : get_option('crg_fact_check_tag');
-
+    
+    
     if($type === 'debunk'){
         $tag = get_option('crg_debunk_tag');
-        //$tag = $debunk_default[0]->tag;
     } else {
         $tag = get_option('crg_fact_check_tag');
-        //$tag = $verification_default[0]->tag;
     }
+
+    $post_type = get_option('crg_post_type');
+    $post_taxonomy = get_option('crg_taxonomy');
     $posts = get_posts(array(
         'numberposts' => -1,
-        'post_type' => 'post',
-        'tag' => $tag
+        'post_type' => $post_type,
+        'tax_query'   => array(
+            array(
+                'taxonomy' => $post_taxonomy,  // The taxonomy to query
+                'field'    => 'slug',          // You can use 'slug', 'id', or 'name'
+                'terms'    => $tag             // The term (tag) to match
+            )
+        )
     ));
 
     echo '<table class="wp-list-table widefat fixed striped">';
@@ -346,55 +336,6 @@ function crm_render_posts_table($type) {
         echo '</tr>';
     }
     echo '</tbody></table>';
-
-    
-
-    
-
-    /*echo "<form method='post' action=''>
-        <label for='debunk'>Tag for debunks</label>
-        <input type='text' id='debunk' name='debunk' value='" . $debunk_default[0]->tag . "' required />
-
-        <label for='verification'>Tag for verification</label>
-        <input type='text' id='verification' name='verification' value='" . $verification_default[0]->tag . "' required />
-
-        <input type='submit' name='tags_submit' value='Save' />
-    </form>";*/
-}
-
-function claim_review_handle_form() {
-    global $wpdb;
-
-    if (isset($_POST['tags_submit'])) {
-        $debunk = sanitize_text_field($_POST['debunk']);
-        $verification = sanitize_text_field($_POST['verification']);
-        // Get table name
-        $table_name = $wpdb->prefix . 'claim_review_options';
-
-        if($debunk)
-
-        $wpdb->update(
-            $table_name,
-            array(
-                'tag' => $debunk
-            ),
-            array('name' => 'debunk'),  // Where clause
-            array( '%s'),       
-            array('%s')              
-        );
-
-        $wpdb->update(
-            $table_name,
-            array(
-                'tag' => $verification
-            ),
-            array('name' => 'verification'),  // Where clause
-            array( '%s'),       
-            array('%s')              
-        );
-        
-    }
-    
 }
 
 // AJAX handler for saving manual claim review
@@ -516,8 +457,9 @@ function crg_generate_claim_review_text($post) {
     $fact_check_tag = get_option('crg_fact_check_tag');
     $debunk_tag = get_option('crg_debunk_tag');
 
-    $is_fact_check = has_tag($fact_check_tag, $post->ID);
-    $is_debunk = has_tag($debunk_tag, $post->ID);
+    $is_fact_check =  has_term( $fact_check_tag, get_option('crg_taxonomy'), $post->ID );//has_tag($fact_check_tag, $post->ID);
+   
+    $is_debunk =  has_term( $debunk_tag, get_option('crg_taxonomy'), $post->ID );;
 
     if (!$is_fact_check && !$is_debunk) {
         return 'Not a fact-check or debunk';
@@ -555,7 +497,7 @@ function crg_generate_claim_review($content) {
     $debunk_tag = get_option('crg_debunk_tag');
 
     // Check if the post has either the fact-check or debunk tag
-    if (!has_tag($fact_check_tag, $post) && !has_tag($debunk_tag, $post)) {
+    if (!has_term( $fact_check_tag, get_option('crg_taxonomy'), $post ) && !(has_term( $debunk_tag, get_option('crg_taxonomy'), $post ))) {
         return $content;
     }
 
@@ -571,7 +513,8 @@ function crg_generate_claim_review($content) {
     $post_url = get_permalink($post->ID);
 
     // Determine the claim author
-    if (has_tag($fact_check_tag, $post)) {
+    //if (has_tag($fact_check_tag, $post)) {
+    if (has_term( $fact_check_tag, get_option('crg_taxonomy'), $post )) {
         // Extract the first words before ":", "|", or "," from the post content
         preg_match('/^([^:|,]+)/', $post->post_content, $matches);
         $claim_author = isset($matches[1]) ? trim($matches[1]) : 'Unknown';
@@ -622,6 +565,5 @@ function crg_generate_claim_review($content) {
 
 add_filter('the_content', 'crg_generate_claim_review');
 
-// Hook to process form data on POST request
-add_action('init', 'claim_review_handle_form');
+
 ?>
