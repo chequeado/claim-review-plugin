@@ -42,18 +42,10 @@ function crg_register_settings() {
     register_setting('crg_settings', 'crg_taxonomy');
     register_setting('crg_settings', 'crg_fact_check_tag');
     register_setting('crg_settings', 'crg_debunk_tag');
+    register_setting('crg_settings', 'crg_rating_taxonomy');
     register_setting('crg_settings', 'crg_organization_name');
     register_setting('crg_settings', 'crg_organization_logo');
     register_setting('crg_settings', 'crg_debunk_author');
-    register_setting('crg_settings', 'crg_best_rating');
-    register_setting('crg_settings', 'crg_worst_rating');
-    register_setting('crg_settings', 'crg_true_alternate_name');
-    register_setting('crg_settings', 'crg_false_alternate_name');
-    register_setting('crg_settings', 'crg_rating_method');
-    register_setting('crg_settings', 'crg_rating_custom_function');
-    register_setting('crg_settings', 'crg_rating_url_patterns');
-    register_setting('crg_settings', 'crg_rating_category_patterns');
-    register_setting('crg_settings', 'crg_rating_content_patterns');
     register_setting('crg_settings', 'crg_ratings', [
         'sanitize_callback' => 'crg_sanitize_ratings'
     ]);
@@ -65,18 +57,10 @@ function crg_register_settings() {
     add_settings_field('crg_taxonomy', 'Select Taxonomy', 'crg_taxonomy_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_fact_check_tag', 'Fact-check Tag', 'crg_fact_check_tag_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_debunk_tag', 'Debunk Tag', 'crg_debunk_tag_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_rating_taxonomy', 'Rating Taxonomy', 'crg_rating_taxonomy_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_organization_name', 'Organization Name', 'crg_organization_name_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_organization_logo', 'Organization Logo URL', 'crg_organization_logo_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_debunk_author', 'Debunk Author', 'crg_debunk_author_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_best_rating', 'Best Rating', 'crg_best_rating_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_worst_rating', 'Worst Rating', 'crg_worst_rating_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_true_alternate_name', 'True Alternate Name', 'crg_true_alternate_name_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_false_alternate_name', 'False Alternate Name', 'crg_false_alternate_name_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_rating_method', 'Rating Extraction Method', 'crg_rating_method_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_rating_custom_function', 'Custom Rating Function', 'crg_rating_custom_function_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_rating_url_patterns', 'URL Rating Patterns', 'crg_rating_url_patterns_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_rating_category_patterns', 'Category Rating Patterns', 'crg_rating_category_patterns_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_rating_content_patterns', 'Content Rating Patterns', 'crg_rating_content_patterns_callback', 'crg-settings', 'crg_main_section');
     add_settings_field(
         'crg_ratings', 
         'Califications', 
@@ -111,26 +95,6 @@ function crg_organization_logo_callback() {
 function crg_debunk_author_callback() {
     $author = get_option('crg_debunk_author', 'Social media');
     echo "<input type='text' name='crg_debunk_author' value='$author' />";
-}
-
-function crg_best_rating_callback() {
-    $best = get_option('crg_best_rating', 5);
-    echo "<input type='number' name='crg_best_rating' value='$best' />";
-}
-
-function crg_worst_rating_callback() {
-    $worst = get_option('crg_worst_rating', 1);
-    echo "<input type='number' name='crg_worst_rating' value='$worst' />";
-}
-
-function crg_true_alternate_name_callback() {
-    $true_name = get_option('crg_true_alternate_name', 'True');
-    echo "<input type='text' name='crg_true_alternate_name' value='$true_name' />";
-}
-
-function crg_false_alternate_name_callback() {
-    $false_name = get_option('crg_false_alternate_name', 'False');
-    echo "<input type='text' name='crg_false_alternate_name' value='$false_name' />";
 }
 
 function crg_post_type_callback() {
@@ -227,6 +191,20 @@ function crg_ratings_callback() {
     <?php
 }
 
+function crg_rating_taxonomy_callback() {
+
+    $selected_taxonomy = get_option('crg_rating_taxonomy');
+    $taxonomies = get_taxonomies(array('public' => true), 'objects');
+
+    echo '<select id="crg_rating_taxonomy" name="crg_rating_taxonomy">';
+    foreach ($taxonomies as $taxonomy) {
+        $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
+        echo '<option value="' . esc_attr($taxonomy->name) . '" ' . $selected . '>' . esc_html($taxonomy->label) . '</option>';
+    }
+    echo '</select>';
+
+}
+
 // Add the management page to the admin menu
 function crm_add_menu_page() {
     add_menu_page(
@@ -258,7 +236,6 @@ function crm_render_manager_page() {
         </div>
     </div>
 
-    <p><?php var_dump(get_option( 'crg_ratings' )[0]);?></p>
     <script>
         jQuery(document).ready(function($) {
             // Tab switching
@@ -322,17 +299,18 @@ function crm_render_posts_table($type) {
     ));
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th>Post Title</th><th>Calculated Claim Review</th><th>Manual Claim Review</th><th>Action</th></tr></thead>';
+    echo '<thead><tr><th>Post Title</th><th>Calculated Claim Review</th><th>Manual Claim Review</th><th>Action</th><th>Rating</th></tr></thead>';
     echo '<tbody>';
     foreach ($posts as $post) {
         $calculated_claim_review = crg_generate_claim_review_text($post);
         $manual_claim_review = get_post_meta($post->ID, 'manual_claim_review', true);
+        $claim_review_rating = wp_get_post_terms( $post->ID, get_option('crg_rating_taxonomy') )[0]->name;
         echo '<tr>';
         echo '<td>' . esc_html($post->post_title) . '</td>';
         echo '<td>' . esc_html($calculated_claim_review) . '</td>';
-        //echo '<td><textarea id="claim-review-' . $post->ID . '" rows="3" cols="50">' . esc_textarea($manual_claim_review) . '</textarea></td>';
         echo '<td><input type="text" id="claim-review-' . $post->ID . '" rows="3" cols="50">' . esc_textarea($manual_claim_review) . '</input></td>';
         echo '<td><button class="button save-claim-review" data-post-id="' . $post->ID . '">Save</button></td>';
+        echo '<td>' . esc_html($claim_review_rating) .'</td>';
         echo '</tr>';
     }
     echo '</tbody></table>';
@@ -390,65 +368,23 @@ function crg_rating_content_patterns_callback() {
 
 // Function to extract rating based on the chosen method
 function crg_extract_rating($post) {
-    $method = get_option('crg_rating_method', 'url');
+
+    $rating_taxonomy = get_option('crg_rating_taxonomy');
+
+    $rating_tag = [];
+
+    foreach(wp_get_post_terms( $post->ID, $rating_taxonomy ) as $taxonomy)
+        {
+            array_push ($rating_tag, $taxonomy->name);
+        }
+    $rating_array = get_option('crg_ratings');
+
+    $final_rating = array_intersect($rating_tag, $rating_array);
+
+    $rating_value = array_search($final_rating[0], $rating_array);
+
+    return $rating_value + 1;
     
-    switch ($method) {
-        case 'url':
-            return crg_extract_rating_from_url($post->post_name);
-        case 'category':
-            return crg_extract_rating_from_category($post->ID);
-        case 'content':
-            return crg_extract_rating_from_content($post->post_content);
-        case 'custom':
-            return crg_extract_rating_custom($post);
-        default:
-            return get_option('crg_worst_rating', 1);
-    }
-}
-
-function crg_extract_rating_from_url($post_name) {
-    $patterns = explode("\n", get_option('crg_rating_url_patterns', ''));
-    foreach ($patterns as $pattern) {
-        list($url_pattern, $rating) = explode('|', trim($pattern));
-        if (strpos($post_name, trim($url_pattern)) !== false) {
-            return intval(trim($rating));
-        }
-    }
-    return get_option('crg_worst_rating', 1);
-}
-
-function crg_extract_rating_from_category($post_id) {
-    $patterns = explode("\n", get_option('crg_rating_category_patterns', ''));
-    $post_categories = wp_get_post_categories($post_id, array('fields' => 'names'));
-    foreach ($patterns as $pattern) {
-        list($category, $rating) = explode('|', trim($pattern));
-        if (in_array(trim($category), $post_categories)) {
-            return intval(trim($rating));
-        }
-    }
-    return get_option('crg_worst_rating', 1);
-}
-
-function crg_extract_rating_from_content($content) {
-    $patterns = explode("\n", get_option('crg_rating_content_patterns', ''));
-    foreach ($patterns as $pattern) {
-        list($content_pattern, $rating) = explode('|', trim($pattern));
-        if (strpos($content, trim($content_pattern)) !== false) {
-            return intval(trim($rating));
-        }
-    }
-    return get_option('crg_worst_rating', 1);
-}
-
-function crg_extract_rating_custom($post) {
-    $custom_function = get_option('crg_rating_custom_function', '');
-    if (!empty($custom_function)) {
-        $func = function($post) use ($custom_function) {
-            return eval('return ' . $custom_function . ';');
-        };
-        return $func($post);
-    }
-    return get_option('crg_worst_rating', 1);
 }
 
 
@@ -516,7 +452,7 @@ function crg_generate_claim_review($content) {
     //if (has_tag($fact_check_tag, $post)) {
     if (has_term( $fact_check_tag, get_option('crg_taxonomy'), $post )) {
         // Extract the first words before ":", "|", or "," from the post content
-        preg_match('/^([^:|,]+)/', $post->post_content, $matches);
+        preg_match('/^([^:|,]+)/', $post->post_title, $matches);
         $claim_author = isset($matches[1]) ? trim($matches[1]) : 'Unknown';
     } else {
         $claim_author = get_option('crg_debunk_author', 'Social media');
@@ -550,8 +486,8 @@ function crg_generate_claim_review($content) {
         'reviewRating' => array(
             '@type' => 'Rating',
             'ratingValue' => $rating_value,
-            'bestRating' => get_option('crg_best_rating', 5),
-            'worstRating' => get_option('crg_worst_rating', 1),
+            'bestRating' => count(get_option('crg_ratings')),
+            'worstRating' => 1,
             'alternateName' => $alternate_name
         )
     );
