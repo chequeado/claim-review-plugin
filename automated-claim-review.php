@@ -299,7 +299,7 @@ function crm_render_posts_table($type) {
     ));
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th>Post Title</th><th>Calculated Claim Review</th><th>Manual Claim Review</th><th>Action</th><th>Rating</th></tr></thead>';
+    echo '<thead><tr><th>Post Title</th><th>Calculated Claim Review</th><th>Manual Claim Review</th><th>Action</th></tr></thead>';
     echo '<tbody>';
     foreach ($posts as $post) {
         $calculated_claim_review = crg_generate_claim_review_text($post);
@@ -310,7 +310,6 @@ function crm_render_posts_table($type) {
         echo '<td>' . esc_html($calculated_claim_review) . '</td>';
         echo '<td><input type="text" id="claim-review-' . $post->ID . '" rows="3" cols="50">' . esc_textarea($manual_claim_review) . '</input></td>';
         echo '<td><button class="button save-claim-review" data-post-id="' . $post->ID . '">Save</button></td>';
-        echo '<td>' . esc_html($claim_review_rating) .'</td>';
         echo '</tr>';
     }
     echo '</tbody></table>';
