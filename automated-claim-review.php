@@ -39,7 +39,9 @@ function crg_render_settings_page() {
 // Register settings
 function crg_register_settings() {
     register_setting('crg_settings', 'crg_post_type');
-    register_setting('crg_settings', 'crg_taxonomy');
+    //register_setting('crg_settings', 'crg_taxonomy');
+    register_setting('crg_settings', 'crg_taxonomy_fact_check');
+    register_setting('crg_settings', 'crg_taxonomy_debunk');
     register_setting('crg_settings', 'crg_fact_check_tag');
     register_setting('crg_settings', 'crg_debunk_tag');
     register_setting('crg_settings', 'crg_rating_taxonomy');
@@ -53,17 +55,19 @@ function crg_register_settings() {
 
     add_settings_section('crg_main_section', 'Main Settings', null, 'crg-settings');
 
-    add_settings_field('crg_post_type', 'Select Post Type', 'crg_post_type_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_taxonomy', 'Select Taxonomy', 'crg_taxonomy_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_fact_check_tag', 'Fact-check Tag', 'crg_fact_check_tag_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_debunk_tag', 'Debunk Tag', 'crg_debunk_tag_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_rating_taxonomy', 'Rating Taxonomy', 'crg_rating_taxonomy_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_organization_name', 'Organization Name', 'crg_organization_name_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_organization_logo', 'Organization Logo URL', 'crg_organization_logo_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_debunk_author', 'Debunk Author', 'crg_debunk_author_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_post_type', 'Seleccionar Tipo de Entrada', 'crg_post_type_callback', 'crg-settings', 'crg_main_section');
+    //add_settings_field('crg_taxonomy', 'Select Taxonomy', 'crg_taxonomy_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_taxonomy_fact_check', 'Seleccionar Taxonomía de Chequeos', 'crg_taxonomy_fact_check_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_taxonomy_debunk', 'Seleccionar Taxonomía de Verificación', 'crg_taxonomy_debunk_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_fact_check_tag', 'Etiqueta de Chequeo ', 'crg_fact_check_tag_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_debunk_tag', 'Etiqueta de Verificación', 'crg_debunk_tag_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_rating_taxonomy', 'Taxonomía de Calificaciones', 'crg_rating_taxonomy_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_organization_name', 'Nombre de la Organización', 'crg_organization_name_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_organization_logo', 'URL del Logo de la Organización', 'crg_organization_logo_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field('crg_debunk_author', 'Autor de Verificación Predeterminado', 'crg_debunk_author_callback', 'crg-settings', 'crg_main_section');
     add_settings_field(
         'crg_ratings', 
-        'Califications', 
+        'Calificaciones', 
         'crg_ratings_callback', 
         'crg-settings', 
         'crg_main_section'
@@ -109,11 +113,35 @@ function crg_post_type_callback() {
     echo '</select>';
 }
 
-function crg_taxonomy_callback() {
+/*function crg_taxonomy_callback() {
     $selected_taxonomy = get_option('crg_taxonomy');
     $taxonomies = get_taxonomies(array('public' => true), 'objects');
 
     echo '<select id="crg_taxonomy" name="crg_taxonomy">';
+    foreach ($taxonomies as $taxonomy) {
+        $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
+        echo '<option value="' . esc_attr($taxonomy->name) . '" ' . $selected . '>' . esc_html($taxonomy->label) . '</option>';
+    }
+    echo '</select>';
+}*/
+
+function crg_taxonomy_fact_check_callback() {
+    $selected_taxonomy = get_option('crg_taxonomy_fact_check');
+    $taxonomies = get_taxonomies(array('public' => true), 'objects');
+
+    echo '<select id="crg_taxonomy_fact_check" name="crg_taxonomy_fact_check">';
+    foreach ($taxonomies as $taxonomy) {
+        $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
+        echo '<option value="' . esc_attr($taxonomy->name) . '" ' . $selected . '>' . esc_html($taxonomy->label) . '</option>';
+    }
+    echo '</select>';
+}
+    
+function crg_taxonomy_debunk_callback() {
+    $selected_taxonomy = get_option('crg_taxonomy_debunk');
+    $taxonomies = get_taxonomies(array('public' => true), 'objects');
+
+    echo '<select id="crg_taxonomy_debunk" name="crg_taxonomy_debunk">';
     foreach ($taxonomies as $taxonomy) {
         $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
         echo '<option value="' . esc_attr($taxonomy->name) . '" ' . $selected . '>' . esc_html($taxonomy->label) . '</option>';
@@ -147,7 +175,7 @@ function crg_ratings_callback() {
                 ?>
                 <div class="crg_rating_row">
                     <input type="text" name="crg_ratings[]" value="<?php echo esc_attr($rating); ?>" />
-                    <button class="button remove-rating">Remove</button>
+                    <button class="button remove-rating">Borrar Calificación</button>
                 </div>
                 <?php
             }
@@ -156,13 +184,13 @@ function crg_ratings_callback() {
             ?>
             <div class="crg_rating_row">
                 <input type="text" name="crg_ratings[]" value="" />
-                <button class="button remove-rating">Remove</button>
+                <button class="button remove-rating">Borrar Calificación</button>
             </div>
             <?php
         }
         ?>
     </div>
-    <button class="button add-rating">Add Calification</button>
+    <button class="button add-rating">Agregar Calificación</button>
 
     <script>
     jQuery(document).ready(function($) {
@@ -206,7 +234,7 @@ function crg_rating_taxonomy_callback() {
 }
 
 // Add the management page to the admin menu
-function crm_add_menu_page() {
+/*function crm_add_menu_page() {
     add_menu_page(
         'ClaimReview Manager',
         'ClaimReview Manager',
@@ -216,11 +244,11 @@ function crm_add_menu_page() {
         'dashicons-analytics',
         6
     );
-}
-add_action('admin_menu', 'crm_add_menu_page');
+}*/
+//add_action('admin_menu', 'crm_add_menu_page');
 
 // Render the management page
-function crm_render_manager_page() {
+/*function crm_render_manager_page() {
     ?>
     <div class="wrap">
         <h1>ClaimReview Manager</h1>
@@ -272,10 +300,10 @@ function crm_render_manager_page() {
         });
     </script>
     <?php
-}
+}*/
 
 // Render the table of posts
-function crm_render_posts_table($type) {
+/*function crm_render_posts_table($type) {
     
     
     if($type === 'debunk'){
@@ -313,10 +341,10 @@ function crm_render_posts_table($type) {
         echo '</tr>';
     }
     echo '</tbody></table>';
-}
+}*/
 
 // AJAX handler for saving manual claim review
-function crm_save_manual_claim_review() {
+/*function crm_save_manual_claim_review() {
     check_ajax_referer('save_manual_claim_review', 'nonce');
     
     $post_id = intval($_POST['post_id']);
@@ -325,8 +353,8 @@ function crm_save_manual_claim_review() {
     update_post_meta($post_id, 'manual_claim_review', $claim_review);
     
     wp_send_json_success();
-}
-add_action('wp_ajax_save_manual_claim_review', 'crm_save_manual_claim_review');
+}*
+add_action('wp_ajax_save_manual_claim_review', 'crm_save_manual_claim_review');*/
 
 // Callbacks for new settings
 function crg_rating_method_callback() {
@@ -382,8 +410,13 @@ function crg_extract_rating($post) {
 
     $rating_value = array_search($final_rating[0], $rating_array);
 
-    return $rating_value + 1;
+    return [
+        'tag_name' => $final_rating,
+        'rating_value' => $rating_value + 1
+    ];
     
+
+    //return $final_rating;
 }
 
 
@@ -392,9 +425,9 @@ function crg_generate_claim_review_text($post) {
     $fact_check_tag = get_option('crg_fact_check_tag');
     $debunk_tag = get_option('crg_debunk_tag');
 
-    $is_fact_check =  has_term( $fact_check_tag, get_option('crg_taxonomy'), $post->ID );//has_tag($fact_check_tag, $post->ID);
+    $is_fact_check =  has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post->ID );//has_tag($fact_check_tag, $post->ID);
    
-    $is_debunk =  has_term( $debunk_tag, get_option('crg_taxonomy'), $post->ID );;
+    $is_debunk =  has_term( $debunk_tag, get_option('crg_taxonomy_debunk'), $post->ID );;
 
     if (!$is_fact_check && !$is_debunk) {
         return 'Not a fact-check or debunk';
@@ -432,7 +465,7 @@ function crg_generate_claim_review($content) {
     $debunk_tag = get_option('crg_debunk_tag');
 
     // Check if the post has either the fact-check or debunk tag
-    if (!has_term( $fact_check_tag, get_option('crg_taxonomy'), $post ) && !(has_term( $debunk_tag, get_option('crg_taxonomy'), $post ))) {
+    if (!has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post ) && !(has_term( $debunk_tag, get_option('crg_taxonomy_debunk'), $post ))) {
         return $content;
     }
 
@@ -449,7 +482,7 @@ function crg_generate_claim_review($content) {
 
     // Determine the claim author
     //if (has_tag($fact_check_tag, $post)) {
-    if (has_term( $fact_check_tag, get_option('crg_taxonomy'), $post )) {
+    if (has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post )) {
         // Extract the first words before ":", "|", or "," from the post content
         preg_match('/^([^:|,]+)/', $post->post_title, $matches);
         $claim_author = isset($matches[1]) ? trim($matches[1]) : 'Unknown';
@@ -472,7 +505,8 @@ function crg_generate_claim_review($content) {
             'author' => array(
                 '@type' => 'Person',
                 'name' => $claim_author
-            )
+            ),
+            'datePublished' => get_the_date('c')
         ),
         'author' => array(
             '@type' => 'Organization',
@@ -484,10 +518,10 @@ function crg_generate_claim_review($content) {
         ),
         'reviewRating' => array(
             '@type' => 'Rating',
-            'ratingValue' => $rating_value,
+            'ratingValue' => $rating_value['rating_value'],
             'bestRating' => count(get_option('crg_ratings')),
             'worstRating' => 1,
-            'alternateName' => $alternate_name
+            'alternateName' => $rating_value['tag_name'][0]
         )
     );
 

@@ -22,7 +22,7 @@ function negacion_a_afirmacion_simple($texto) {
     if (count($partes) > 1) {
         $segunda_parte = trim($partes[1]);
         if (!(substr($segunda_parte, 0, 1) === '"' && substr($segunda_parte, -1) === '"')) {
-            $texto = $partes[1];
+            $texto = $partes[0];
         }
     }
     
