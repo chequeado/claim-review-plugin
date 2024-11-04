@@ -42,8 +42,14 @@ function crg_register_settings() {
     //register_setting('crg_settings', 'crg_taxonomy');
     register_setting('crg_settings', 'crg_taxonomy_fact_check');
     register_setting('crg_settings', 'crg_taxonomy_debunk');
-    register_setting('crg_settings', 'crg_fact_check_tag');
-    register_setting('crg_settings', 'crg_debunk_tag');
+    /*register_setting('crg_settings', 'crg_fact_check_tag');
+    register_setting('crg_settings', 'crg_debunk_tag');*/
+    register_setting('crg_settings', 'crg_fact_check_tag', [
+        'sanitize_callback' => 'crg_sanitize_tags'
+    ]);
+    register_setting('crg_settings', 'crg_debunk_tag', [
+        'sanitize_callback' => 'crg_sanitize_tags'
+    ]);
     register_setting('crg_settings', 'crg_rating_taxonomy');
     register_setting('crg_settings', 'crg_organization_name');
     register_setting('crg_settings', 'crg_organization_logo');
@@ -75,8 +81,16 @@ function crg_register_settings() {
 }
 add_action('admin_init', 'crg_register_settings');
 
+// Sanitize function to process the textarea input and store it as an array
+function crg_sanitize_tags($input) {
+    // Split input by new lines into an array, trimming whitespace for each entry
+    $tags = array_filter(array_map('trim', explode("\n", $input)));
+
+    return $tags;
+}
+
 // Settings callbacks
-function crg_fact_check_tag_callback() {
+/*function crg_fact_check_tag_callback() {
     $tag = get_option('crg_fact_check_tag');
     echo "<input type='text' name='crg_fact_check_tag' value='$tag' />";
 }
@@ -84,7 +98,34 @@ function crg_fact_check_tag_callback() {
 function crg_debunk_tag_callback() {
     $tag = get_option('crg_debunk_tag');
     echo "<input type='text' name='crg_debunk_tag' value='$tag' />";
+}*/
+
+function crg_fact_check_tag_callback() {
+    // Get the array of tags; if it's a string (from an old version), convert it to an array
+    $tags = get_option('crg_fact_check_tag', []);
+    if (!is_array($tags)) {
+        $tags = explode("\n", $tags);
+    }
+
+    // Convert the array to a newline-separated string for display in the textarea
+    $tags_string = implode("\n", $tags);
+
+    echo "<textarea name='crg_fact_check_tag' rows='5' cols='50'>$tags_string</textarea>";
+    echo "<p>Enter each tag on a new line.</p>";
 }
+
+function crg_debunk_tag_callback() {
+    $tags = get_option('crg_debunk_tag', []);
+    if (!is_array($tags)) {
+        $tags = explode("\n", $tags);
+    }
+
+    $tags_string = implode("\n", $tags);
+
+    echo "<textarea name='crg_debunk_tag' rows='5' cols='50'>$tags_string</textarea>";
+    echo "<p>Enter each tag on a new line.</p>";
+}
+
 
 function crg_organization_name_callback() {
     $name = get_option('crg_organization_name');
@@ -408,26 +449,53 @@ function crg_extract_rating($post) {
 
     $final_rating = array_intersect($rating_tag, $rating_array);
 
-    $rating_value = array_search($final_rating[0], $rating_array);
+    $rating_value = array_search(array_values($final_rating)[0], $rating_array);
 
-    return [
-        'tag_name' => $final_rating,
+   return [
+        'tag_name' => array_values($final_rating)[0],
         'rating_value' => $rating_value + 1
     ];
-    
 
-    //return $final_rating;
+    /*return [
+        'tag_name' => $rating_tag,
+        'rating_value' => $final_rating
+    ];*/
 }
 
 
 // Helper function to generate claim review text for the admin table
 function crg_generate_claim_review_text($post) {
-    $fact_check_tag = get_option('crg_fact_check_tag');
-    $debunk_tag = get_option('crg_debunk_tag');
+    /*$fact_check_tag = array(get_option('crg_fact_check_tag'));
+    $debunk_tag = array(get_option('crg_debunk_tag'));
 
     $is_fact_check =  has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post->ID );//has_tag($fact_check_tag, $post->ID);
    
-    $is_debunk =  has_term( $debunk_tag, get_option('crg_taxonomy_debunk'), $post->ID );;
+    $is_debunk =  has_term( $debunk_tag, get_option('crg_taxonomy_debunk'), $post->ID );;*/
+
+    $fact_check_tags = get_option('crg_fact_check_tag');
+    $debunk_tags = get_option('crg_debunk_tag');
+
+    // Ensure both tags are arrays to handle single or multiple values
+    $fact_check_tags = is_array($fact_check_tags) ? $fact_check_tags : array($fact_check_tags);
+    $debunk_tags = is_array($debunk_tags) ? $debunk_tags : array($debunk_tags);
+
+    // Check if any term in $fact_check_tags matches the taxonomy for fact checks
+    $is_fact_check = false;
+    foreach ($fact_check_tags as $tag) {
+        if (has_term($tag, get_option('crg_taxonomy_fact_check'), $post->ID)) {
+            $is_fact_check = true;
+            break;
+        }
+    }
+
+    // Check if any term in $debunk_tags matches the taxonomy for debunks
+    $is_debunk = false;
+    foreach ($debunk_tags as $tag) {
+        if (has_term($tag, get_option('crg_taxonomy_debunk'), $post->ID)) {
+            $is_debunk = true;
+            break;
+        }
+    }
 
     if (!$is_fact_check && !$is_debunk) {
         return 'Not a fact-check or debunk';
@@ -461,11 +529,36 @@ function crg_generate_claim_review_text($post) {
 function crg_generate_claim_review($content) {
     global $post;
 
-    $fact_check_tag = get_option('crg_fact_check_tag');
-    $debunk_tag = get_option('crg_debunk_tag');
+    $fact_check_tags = array(get_option('crg_fact_check_tag'));
+    $debunk_tags = array(get_option('crg_debunk_tag'));
 
     // Check if the post has either the fact-check or debunk tag
-    if (!has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post ) && !(has_term( $debunk_tag, get_option('crg_taxonomy_debunk'), $post ))) {
+    /*if (!has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post ) && !(has_term( $debunk_tag, get_option('crg_taxonomy_debunk'), $post ))) {
+        return $content;
+    }*/
+
+    $fact_check_tags = is_array($fact_check_tags) ? $fact_check_tags : array($fact_check_tags);
+    $debunk_tags = is_array($debunk_tags) ? $debunk_tags : array($debunk_tags);
+
+    // Check if any term in $fact_check_tags matches the taxonomy for fact checks
+    $is_fact_check = false;
+    foreach ($fact_check_tags as $tag) {
+        if (has_term($tag, get_option('crg_taxonomy_fact_check'), $post->ID)) {
+            $is_fact_check = true;
+            break;
+        }
+    }
+
+    // Check if any term in $debunk_tags matches the taxonomy for debunks
+    $is_debunk = false;
+    foreach ($debunk_tags as $tag) {
+        if (has_term($tag, get_option('crg_taxonomy_debunk'), $post->ID)) {
+            $is_debunk = true;
+            break;
+        }
+    }
+
+    if (!$is_fact_check && !$is_debunk) {
         return $content;
     }
 
@@ -482,7 +575,7 @@ function crg_generate_claim_review($content) {
 
     // Determine the claim author
     //if (has_tag($fact_check_tag, $post)) {
-    if (has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post )) {
+    if (has_term( $fact_check_tags, get_option('crg_taxonomy_fact_check'), $post )) {
         // Extract the first words before ":", "|", or "," from the post content
         preg_match('/^([^:|,]+)/', $post->post_title, $matches);
         $claim_author = isset($matches[1]) ? trim($matches[1]) : 'Unknown';
@@ -521,7 +614,7 @@ function crg_generate_claim_review($content) {
             'ratingValue' => $rating_value['rating_value'],
             'bestRating' => count(get_option('crg_ratings')),
             'worstRating' => 1,
-            'alternateName' => $rating_value['tag_name'][0]
+            'alternateName' => $rating_value['tag_name']
         )
     );
 
