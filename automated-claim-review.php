@@ -449,12 +449,22 @@ function crg_extract_rating($post) {
 
     $final_rating = array_intersect($rating_tag, $rating_array);
 
-    $rating_value = array_search(array_values($final_rating)[0], $rating_array);
+   
 
-   return [
-        'tag_name' => array_values($final_rating)[0],
-        'rating_value' => $rating_value + 1
-    ];
+    if (empty($final_rating)){
+        return null;
+    } else {
+
+        $rating_value = array_search(array_values($final_rating)[0], $rating_array);
+
+        
+        return [
+            'tag_name' => array_values($final_rating)[0],
+            'rating_value' => $rating_value + 1
+        ];
+    }
+
+   
 
     /*return [
         'tag_name' => $rating_tag,
@@ -585,6 +595,10 @@ function crg_generate_claim_review($content) {
 
     // Extract rating
     $rating_value = crg_extract_rating($post);
+
+    if(!$rating_value) {
+        return $content;
+    }
     $alternate_name = ($rating_value == get_option('crg_best_rating', 5)) ? get_option('crg_true_alternate_name', 'True') : get_option('crg_false_alternate_name', 'False');
 
     // Prepare the ClaimReview schema
