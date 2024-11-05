@@ -81,12 +81,19 @@ function crg_register_settings() {
 }
 add_action('admin_init', 'crg_register_settings');
 
-// Sanitize function to process the textarea input and store it as an array
 function crg_sanitize_tags($input) {
-    // Split input by new lines into an array, trimming whitespace for each entry
-    $tags = array_filter(array_map('trim', explode("\n", $input)));
-
-    return $tags;
+    // If input is already an array, just sanitize each element
+    if (is_array($input)) {
+        return array_filter(array_map('trim', $input));
+    }
+    
+    // If input is a string (from textarea), split by newlines
+    if (is_string($input)) {
+        return array_filter(array_map('trim', explode("\n", $input)));
+    }
+    
+    // If input is neither string nor array, return empty array
+    return array();
 }
 
 // Settings callbacks
@@ -274,129 +281,6 @@ function crg_rating_taxonomy_callback() {
 
 }
 
-// Add the management page to the admin menu
-/*function crm_add_menu_page() {
-    add_menu_page(
-        'ClaimReview Manager',
-        'ClaimReview Manager',
-        'edit_posts',
-        'claim-review-manager',
-        'crm_render_manager_page',
-        'dashicons-analytics',
-        6
-    );
-}*/
-//add_action('admin_menu', 'crm_add_menu_page');
-
-// Render the management page
-/*function crm_render_manager_page() {
-    ?>
-    <div class="wrap">
-        <h1>ClaimReview Manager</h1>
-        <h2 class="nav-tab-wrapper">
-            <a href="#debunks" class="nav-tab nav-tab-active">Debunks</a>
-            <a href="#verifications" class="nav-tab">Verifications</a>
-        </h2>
-        <div id="debunks" class="tab-content">
-            <?php crm_render_posts_table('debunk'); ?>
-        </div>
-        <div id="verifications" class="tab-content" style="display:none;">
-            <?php crm_render_posts_table('verification'); ?>
-        </div>
-    </div>
-
-    <script>
-        jQuery(document).ready(function($) {
-            // Tab switching
-            $('.nav-tab-wrapper a').click(function(e) {
-                e.preventDefault();
-                $('.nav-tab-wrapper a').removeClass('nav-tab-active');
-                $(this).addClass('nav-tab-active');
-                $('.tab-content').hide();
-                $($(this).attr('href')).show();
-            });
-
-            // AJAX save
-            $('.save-claim-review').click(function() {
-                var postId = $(this).data('post-id');
-                var claimReview = $('#claim-review-' + postId).val();
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'save_manual_claim_review',
-                        post_id: postId,
-                        claim_review: claimReview,
-                        nonce: '<?php echo wp_create_nonce("save_manual_claim_review"); ?>'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            alert('Claim review saved successfully!');
-                        } else {
-                            alert('Error saving claim review.');
-                        }
-                    }
-                });
-            });
-        });
-    </script>
-    <?php
-}*/
-
-// Render the table of posts
-/*function crm_render_posts_table($type) {
-    
-    
-    if($type === 'debunk'){
-        $tag = get_option('crg_debunk_tag');
-    } else {
-        $tag = get_option('crg_fact_check_tag');
-    }
-
-    $post_type = get_option('crg_post_type');
-    $post_taxonomy = get_option('crg_taxonomy');
-    $posts = get_posts(array(
-        'numberposts' => -1,
-        'post_type' => $post_type,
-        'tax_query'   => array(
-            array(
-                'taxonomy' => $post_taxonomy,  // The taxonomy to query
-                'field'    => 'slug',          // You can use 'slug', 'id', or 'name'
-                'terms'    => $tag             // The term (tag) to match
-            )
-        )
-    ));
-
-    echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th>Post Title</th><th>Calculated Claim Review</th><th>Manual Claim Review</th><th>Action</th></tr></thead>';
-    echo '<tbody>';
-    foreach ($posts as $post) {
-        $calculated_claim_review = crg_generate_claim_review_text($post);
-        $manual_claim_review = get_post_meta($post->ID, 'manual_claim_review', true);
-        $claim_review_rating = wp_get_post_terms( $post->ID, get_option('crg_rating_taxonomy') )[0]->name;
-        echo '<tr>';
-        echo '<td>' . esc_html($post->post_title) . '</td>';
-        echo '<td>' . esc_html($calculated_claim_review) . '</td>';
-        echo '<td><input type="text" id="claim-review-' . $post->ID . '" rows="3" cols="50">' . esc_textarea($manual_claim_review) . '</input></td>';
-        echo '<td><button class="button save-claim-review" data-post-id="' . $post->ID . '">Save</button></td>';
-        echo '</tr>';
-    }
-    echo '</tbody></table>';
-}*/
-
-// AJAX handler for saving manual claim review
-/*function crm_save_manual_claim_review() {
-    check_ajax_referer('save_manual_claim_review', 'nonce');
-    
-    $post_id = intval($_POST['post_id']);
-    $claim_review = sanitize_textarea_field($_POST['claim_review']);
-    
-    update_post_meta($post_id, 'manual_claim_review', $claim_review);
-    
-    wp_send_json_success();
-}*
-add_action('wp_ajax_save_manual_claim_review', 'crm_save_manual_claim_review');*/
-
 // Callbacks for new settings
 function crg_rating_method_callback() {
     $method = get_option('crg_rating_method', 'url');
@@ -454,66 +338,56 @@ function crg_extract_rating($post) {
     if (empty($final_rating)){
         return null;
     } else {
-
         $rating_value = array_search(array_values($final_rating)[0], $rating_array);
 
-        
         return [
             'tag_name' => array_values($final_rating)[0],
             'rating_value' => $rating_value + 1
         ];
     }
-
-   
-
-    /*return [
-        'tag_name' => $rating_tag,
-        'rating_value' => $final_rating
-    ];*/
 }
 
+// Function to check if post has any tag from a list of tags in a taxonomy
+function has_any_term($tags, $taxonomy, $post_id) {
+    // Ensure tags is an array
+    $tags = is_array($tags) ? $tags : array($tags);
+    
+    // Remove any empty values
+    $tags = array_filter($tags, function($tag) {
+        return !empty(trim($tag));
+    });
+    
+    if (empty($tags)) {
+        return false;
+    }
+    
+    foreach ($tags as $tag) {
+        if (has_term(trim($tag), $taxonomy, $post_id)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 // Helper function to generate claim review text for the admin table
 function crg_generate_claim_review_text($post) {
-    /*$fact_check_tag = array(get_option('crg_fact_check_tag'));
-    $debunk_tag = array(get_option('crg_debunk_tag'));
-
-    $is_fact_check =  has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post->ID );//has_tag($fact_check_tag, $post->ID);
-   
-    $is_debunk =  has_term( $debunk_tag, get_option('crg_taxonomy_debunk'), $post->ID );;*/
-
-    $fact_check_tags = get_option('crg_fact_check_tag');
-    $debunk_tags = get_option('crg_debunk_tag');
-
-    // Ensure both tags are arrays to handle single or multiple values
+    $fact_check_tags = get_option('crg_fact_check_tag', array());
+    $debunk_tags = get_option('crg_debunk_tag', array());
+    
+    // Ensure both are arrays
     $fact_check_tags = is_array($fact_check_tags) ? $fact_check_tags : array($fact_check_tags);
     $debunk_tags = is_array($debunk_tags) ? $debunk_tags : array($debunk_tags);
-
-    // Check if any term in $fact_check_tags matches the taxonomy for fact checks
-    $is_fact_check = false;
-    foreach ($fact_check_tags as $tag) {
-        if (has_term($tag, get_option('crg_taxonomy_fact_check'), $post->ID)) {
-            $is_fact_check = true;
-            break;
-        }
-    }
-
-    // Check if any term in $debunk_tags matches the taxonomy for debunks
-    $is_debunk = false;
-    foreach ($debunk_tags as $tag) {
-        if (has_term($tag, get_option('crg_taxonomy_debunk'), $post->ID)) {
-            $is_debunk = true;
-            break;
-        }
-    }
-
+    
+    // Use the helper function to check for tags
+    $is_fact_check = has_any_term($fact_check_tags, get_option('crg_taxonomy_fact_check'), $post->ID);
+    $is_debunk = has_any_term($debunk_tags, get_option('crg_taxonomy_debunk'), $post->ID);
+    
     if (!$is_fact_check && !$is_debunk) {
         return 'Not a fact-check or debunk';
     }
-
+    
     $post_title = get_the_title($post->ID);
-    $post_content = $post->post_content;
-
+    
     if ($is_fact_check) {
         // For fact-checks, use the part after ":", "|", or ","
         $separators = array(':', '|', ',');
@@ -522,85 +396,66 @@ function crg_generate_claim_review_text($post) {
         $claim_reviewed = isset($parts[1]) ? trim($parts[1]) : $post_title;
         // Remove quote marks
         $claim_reviewed = str_replace('"', '', $claim_reviewed);
-        //return var_dump($parts);
     } else {
         // For debunks, use negacion_a_afirmacion_simple
         $claim_reviewed = negacion_a_afirmacion_simple($post_title);
         if ($claim_reviewed === null) {
             $claim_reviewed = $post_title; // Use original title if no transformation
         }
-        //return 'si';
     }
-
+    
     return $claim_reviewed;
 }
 
-// Modify the existing claim review generation function
 function crg_generate_claim_review($content) {
     global $post;
-
-    $fact_check_tags = array(get_option('crg_fact_check_tag'));
-    $debunk_tags = array(get_option('crg_debunk_tag'));
-
-    // Check if the post has either the fact-check or debunk tag
-    /*if (!has_term( $fact_check_tag, get_option('crg_taxonomy_fact_check'), $post ) && !(has_term( $debunk_tag, get_option('crg_taxonomy_debunk'), $post ))) {
-        return $content;
-    }*/
-
+    
+    // Get the tags as arrays
+    $fact_check_tags = get_option('crg_fact_check_tag', array());
+    $debunk_tags = get_option('crg_debunk_tag', array());
+    
+    // Ensure we have arrays
     $fact_check_tags = is_array($fact_check_tags) ? $fact_check_tags : array($fact_check_tags);
     $debunk_tags = is_array($debunk_tags) ? $debunk_tags : array($debunk_tags);
-
-    // Check if any term in $fact_check_tags matches the taxonomy for fact checks
-    $is_fact_check = false;
-    foreach ($fact_check_tags as $tag) {
-        if (has_term($tag, get_option('crg_taxonomy_fact_check'), $post->ID)) {
-            $is_fact_check = true;
-            break;
-        }
-    }
-
-    // Check if any term in $debunk_tags matches the taxonomy for debunks
-    $is_debunk = false;
-    foreach ($debunk_tags as $tag) {
-        if (has_term($tag, get_option('crg_taxonomy_debunk'), $post->ID)) {
-            $is_debunk = true;
-            break;
-        }
-    }
-
+    
+    // Check for fact check or debunk tags using the helper function
+    $fact_check_taxonomy = get_option('crg_taxonomy_fact_check');
+    $debunk_taxonomy = get_option('crg_taxonomy_debunk');
+    
+    $is_fact_check = has_any_term($fact_check_tags, $fact_check_taxonomy, $post->ID);
+    $is_debunk = has_any_term($debunk_tags, $debunk_taxonomy, $post->ID);
+    
     if (!$is_fact_check && !$is_debunk) {
         return $content;
     }
-
+    
+    // Rest of the claim review generation logic...
+    $claim_reviewed = crg_generate_claim_review_text($post);
+    
     // Check for manual claim review
     $manual_claim_review = get_post_meta($post->ID, 'manual_claim_review', true);
     if (!empty($manual_claim_review)) {
         $claim_reviewed = $manual_claim_review;
-    } else {
-        $claim_reviewed = crg_generate_claim_review_text($post);
     }
-
+    
     // Get post data
     $post_url = get_permalink($post->ID);
-
+    
     // Determine the claim author
-    //if (has_tag($fact_check_tag, $post)) {
-    if (has_term( $fact_check_tags, get_option('crg_taxonomy_fact_check'), $post )) {
-        // Extract the first words before ":", "|", or "," from the post content
+    if ($is_fact_check) {
         preg_match('/^([^:|,]+)/', $post->post_title, $matches);
         $claim_author = isset($matches[1]) ? trim($matches[1]) : 'Unknown';
     } else {
         $claim_author = get_option('crg_debunk_author', 'Social media');
     }
-
+    
     // Extract rating
     $rating_value = crg_extract_rating($post);
-
-    if(!$rating_value) {
+    
+    if (!$rating_value) {
         return $content;
     }
-    $alternate_name = ($rating_value == get_option('crg_best_rating', 5)) ? get_option('crg_true_alternate_name', 'True') : get_option('crg_false_alternate_name', 'False');
-
+    
     // Prepare the ClaimReview schema
     $claim_review = array(
         '@context' => 'https://schema.org',
@@ -631,15 +486,13 @@ function crg_generate_claim_review($content) {
             'alternateName' => $rating_value['tag_name']
         )
     );
-
+    
     // Generate the script tag
     $script = '<script type="application/ld+json">' . json_encode($claim_review, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '</script>';
-
-    // Add the script to the content
+    
     return $script . $content;
 }
 
 add_filter('the_content', 'crg_generate_claim_review');
-
 
 ?>
