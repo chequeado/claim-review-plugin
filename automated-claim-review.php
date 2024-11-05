@@ -1,11 +1,11 @@
 <?php
 /*
-Plugin Name: ClaimReview Generator
-Plugin URI: https://example.com/plugins/claim-review-generator
-Description: Generates ClaimReview schema for fact-checking articles and debunks
+Plugin Name: ClaimReview Automático
+Plugin URI: https://github.com/chequeado/claim-review-plugin
+Description: Genera el schema ClaimReview para chequeos y verificaciones de manera automática
 Version: 2.0
-Author: Your Name
-Author URI: https://example.com
+Author: Chequeado
+Author URI: https://chequeado.com
 */
 
 // Include the negacion_a_afirmacion_simple function
