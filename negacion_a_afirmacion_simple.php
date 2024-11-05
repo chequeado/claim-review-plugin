@@ -16,18 +16,30 @@ function negacion_a_afirmacion_simple($texto) {
     // 2. Reemplazar "Detector:" si existe
     $texto = preg_replace('/^Detector:\s/', '', $texto);
 
-    // 3. Si la frase está separada por ":", quedarse con la primera mitad,
-    // excepto si después de ":" viene una frase entre comillas
+   // 3. Si la frase está separada por ":", comparar longitudes y quedarse con la más larga,
+    // manteniendo el caso especial de las comillas
     $partes = explode(':', $texto, 2);
     if (count($partes) > 1) {
+        $primera_parte = trim($partes[0]);
         $segunda_parte = trim($partes[1]);
-        if (!(substr($segunda_parte, 0, 1) === '"' && substr($segunda_parte, -1) === '"')) {
-            $texto = $partes[0];
+        
+        // Verificar si la segunda parte está entre comillas
+        if (substr($segunda_parte, 0, 1) === '"' && substr($segunda_parte, -1) === '"') {
+            // Si está entre comillas, usar la segunda parte
+            $texto = $segunda_parte;
+        } else {
+            // Comparar longitudes y quedarse con la más larga
+            $longitud_primera = strlen($primera_parte);
+            $longitud_segunda = strlen($segunda_parte);
+            
+            $texto = ($longitud_primera >= $longitud_segunda) ? $primera_parte : $segunda_parte;
         }
     }
     
     // 4. Borrar frases compuestas específicas
     $frases_a_borrar = [
+        '/son falsas/i',
+        '/son falsos/i',
         '/es falso que/i',
         '/es falsa la/i',
         '/es un mito/i',
