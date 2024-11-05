@@ -445,20 +445,35 @@ function crg_generate_claim_review($content) {
 
 add_filter('the_content', 'crg_generate_claim_review');
 
-// Add Meta Box to post editor with title check
+// Add Meta Box to post editor
 function crg_add_meta_box() {
     $post_type = get_option('crg_post_type');
     if (empty($post_type) || !post_type_exists($post_type)) {
         return;
     }
     
-    // Solo agregar el meta box si el post tiene título
-    global $post;
-    if (empty($post) || empty($post->post_title)) {
+    // Simplemente agregar el meta box al tipo de post correcto
+    // Las verificaciones de título y taxonomías se harán en el render
+    add_meta_box(
+        'crg_manual_claim_review',
+        'ClaimReview Manual',
+        'crg_render_meta_box',
+        $post_type,
+        'normal',
+        'high'
+    );
+}
+add_action('add_meta_boxes', 'crg_add_meta_box');
+
+// Render Meta Box content
+function crg_render_meta_box($post) {
+    // Verificar si el post tiene título aquí
+    if (empty($post->post_title)) {
+        echo '<p class="description">El claim review estará disponible después de guardar el título del post.</p>';
         return;
     }
     
-    // También verificar si es fact check o debunk antes de mostrar la caja
+    // Verificar las taxonomías aquí donde ya están cargadas
     $fact_check_tags = get_option('crg_fact_check_tag', array());
     $debunk_tags = get_option('crg_debunk_tag', array());
     
@@ -469,23 +484,7 @@ function crg_add_meta_box() {
     $is_debunk = has_any_term($debunk_tags, $debunk_taxonomy, $post->ID);
     
     if (!$is_fact_check && !$is_debunk) {
-        return;
-    }
-    
-    add_meta_box(
-        'crg_manual_claim_review',
-        'ClaimReview Manual',
-        'crg_render_meta_box',
-        $post_type,
-        'normal',
-        'high'
-    );
-}
-
-// Modificar el renderizado para incluir un mensaje cuando no hay título
-function crg_render_meta_box($post) {
-    if (empty($post->post_title)) {
-        echo '<p class="description">El título del ClaimReview estará disponible después de guardar el título del post.</p>';
+        echo '<p class="description">Este post no está marcado como fact-check ni como debunk.</p>';
         return;
     }
     
@@ -508,7 +507,6 @@ function crg_render_meta_box($post) {
             class="widefat" 
             rows="3"
             style="width: 100%"
-            placeholder=""
         ><?php echo esc_textarea($manual_claim); ?></textarea>
         <p class="description">
             Este texto se usa en el schema ClaimReview. Si lo dejás vacío, se usará el texto calculado automáticamente.
@@ -524,14 +522,6 @@ function crg_render_meta_box($post) {
         }
         ?>
     </div>
-    <style>
-        .crg-meta-box-container {
-            margin: 10px 0;
-        }
-        .crg-meta-box-container textarea {
-            margin: 10px 0;
-        }
-    </style>
     <?php
 }
 
