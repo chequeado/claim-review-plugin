@@ -456,7 +456,7 @@ function crg_add_meta_box() {
     // Las verificaciones de título y taxonomías se harán en el render
     add_meta_box(
         'crg_manual_claim_review',
-        'Descripción para Claim Review',
+        'ClaimReview - Descripción de lo que estás chequeando ',
         'crg_render_meta_box',
         $post_type,
         'normal',
@@ -509,16 +509,16 @@ function crg_render_meta_box($post) {
             style="width: 100%"
         ><?php echo esc_textarea($manual_claim); ?></textarea>
         <p class="description">
-            Esta sección permite corregir el texto que se usa en el schema ClaimReview en caso de que la opción automática contenga algún error. 
+            Esta sección permite corregir el texto que se carga en ClaimReview en caso de que contenga algún error. 
             <br/>
-            Si queda vacía esta caja se usará el texto generado automáticamente.
+            El texto refiere a la frase que se está chequeando o una descripción del contenido qué se está verificando.
         </p>
         <?php 
         // Show automatically calculated claim for reference
         $auto_claim = crg_generate_claim_review_text($post);
         if ($auto_claim !== $manual_claim) {
             echo '<p class="description">';
-            echo '<strong>Claim calculado automáticamente:</strong><br>';
+            echo '<strong>Descripción generada automáticamente:</strong><br>';
             echo esc_html($auto_claim);
             echo '</p>';
         }
