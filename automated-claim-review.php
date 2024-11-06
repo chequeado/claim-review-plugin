@@ -326,7 +326,7 @@ function crg_generate_claim_review_text($post) {
     $is_debunk = has_any_term($debunk_tags, get_option('crg_taxonomy_debunk'), $post->ID);
     
     if (!$is_fact_check && !$is_debunk) {
-        return 'Not a fact-check or debunk';
+        return 'No es chequeo ni verificación.';
     }
     
     $post_title = get_the_title($post->ID);
@@ -456,7 +456,7 @@ function crg_add_meta_box() {
     // Las verificaciones de título y taxonomías se harán en el render
     add_meta_box(
         'crg_manual_claim_review',
-        'ClaimReview Manual',
+        'Descripción para Claim Review',
         'crg_render_meta_box',
         $post_type,
         'normal',
@@ -469,7 +469,7 @@ add_action('add_meta_boxes', 'crg_add_meta_box');
 function crg_render_meta_box($post) {
     // Verificar si el post tiene título aquí
     if (empty($post->post_title)) {
-        echo '<p class="description">El claim review estará disponible después de guardar el título del post.</p>';
+        echo '<p class="description">La opción para corregir la frase para ClaimReview estará disponible después de guardar el título del post y actualizar la página.</p>';
         return;
     }
     
@@ -484,7 +484,7 @@ function crg_render_meta_box($post) {
     $is_debunk = has_any_term($debunk_tags, $debunk_taxonomy, $post->ID);
     
     if (!$is_fact_check && !$is_debunk) {
-        echo '<p class="description">Este post no está marcado como fact-check ni como debunk.</p>';
+        echo '<p class="description">Este post no está marcado como chequeo ni como verificación.</p>';
         return;
     }
     
@@ -509,7 +509,9 @@ function crg_render_meta_box($post) {
             style="width: 100%"
         ><?php echo esc_textarea($manual_claim); ?></textarea>
         <p class="description">
-            Este texto se usa en el schema ClaimReview. Si lo dejás vacío, se usará el texto calculado automáticamente.
+            Esta sección permite corregir el texto que se usa en el schema ClaimReview en caso de que la opción automática contenga algún error. 
+            <br/>
+            Si queda vacía esta caja se usará el texto generado automáticamente.
         </p>
         <?php 
         // Show automatically calculated claim for reference
