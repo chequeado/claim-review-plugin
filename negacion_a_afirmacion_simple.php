@@ -41,6 +41,7 @@ function negacion_a_afirmacion_simple($texto) {
         '/son falsas/i',
         '/son falsos/i',
         '/es falso que/i',
+        '/falso que/i',
         '/es falsa la/i',
         '/es un mito/i',
         '/es falsa/i',

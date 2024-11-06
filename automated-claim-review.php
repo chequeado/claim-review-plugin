@@ -58,7 +58,9 @@ function crg_register_settings() {
     register_setting('crg_settings', 'crg_ratings', [
         'sanitize_callback' => 'crg_sanitize_ratings'
     ]);
-   
+    register_setting('crg_settings', 'crg_convert_titles', [
+        'default' => true
+    ]);
 
     add_settings_section('crg_main_section', 'Main Settings', null, 'crg-settings');
 
@@ -77,7 +79,15 @@ function crg_register_settings() {
         'crg_ratings_callback', 
         'crg-settings', 
         'crg_main_section'
-    );   
+    );  
+    // Y agregar el campo:
+    add_settings_field(
+        'crg_convert_titles', 
+        'Convertir titulares a descripciones', 
+        'crg_convert_titles_callback', 
+        'crg-settings', 
+        'crg_main_section'
+    ); 
 }
 add_action('admin_init', 'crg_register_settings');
 
@@ -219,6 +229,7 @@ function crg_ratings_callback() {
         ?>
     </div>
     <button class="button add-rating">Agregar Calificación</button>
+    <p class="description">¡IMPORTANTE!<br/>Orden: arriba va la peor calificación (ej: Falso) y sigue en orden hasta la mejor calificación abajo (ej: Verdadero).</p>
 
     <script>
     jQuery(document).ready(function($) {
@@ -261,6 +272,12 @@ function crg_rating_taxonomy_callback() {
 
 }
 
+function crg_convert_titles_callback() {
+    $convert_titles = get_option('crg_convert_titles', true);
+    echo '<input type="checkbox" name="crg_convert_titles" value="1" ' . checked(1, $convert_titles, false) . '/>';
+    echo '<p class="description">Si está activado, convierte automáticamente las negaciones en afirmaciones.</p>';
+}
+
 // Function to extract rating based on the chosen method
 function crg_extract_rating($post) {
 
@@ -269,14 +286,13 @@ function crg_extract_rating($post) {
     $rating_tag = [];
 
     foreach(wp_get_post_terms( $post->ID, $rating_taxonomy ) as $taxonomy)
-        {
-            array_push ($rating_tag, $taxonomy->name);
-        }
+    {
+        array_push ($rating_tag, $taxonomy->name);
+    }
+
     $rating_array = get_option('crg_ratings');
 
-    $final_rating = array_intersect($rating_tag, $rating_array);
-
-   
+    $final_rating = array_intersect($rating_tag, $rating_array);   
 
     if (empty($final_rating)){
         return null;
@@ -312,16 +328,32 @@ function has_any_term($tags, $taxonomy, $post_id) {
     return false;
 }
 
+function extract_claim_from_title($post_title) {
+    // Definir separadores en orden de prioridad
+    $separators = array(':', '|', ',');
+    
+    // Probar cada separador en orden
+    foreach ($separators as $separator) {
+        $parts = explode($separator, $post_title, 2);
+        if (count($parts) > 1 && !empty(trim($parts[1]))) {
+            // Si encontramos un separador válido con contenido después,
+            // retornamos la parte derecha limpia
+            return str_replace('"', '', trim($parts[1]));
+        }
+    }
+    
+    // Si no encontramos ningún separador válido, retornamos el título original
+    return str_replace('"', '', trim($post_title));
+}
+
 // Helper function to generate claim review text for the admin table
 function crg_generate_claim_review_text($post) {
     $fact_check_tags = get_option('crg_fact_check_tag', array());
     $debunk_tags = get_option('crg_debunk_tag', array());
     
-    // Ensure both are arrays
     $fact_check_tags = is_array($fact_check_tags) ? $fact_check_tags : array($fact_check_tags);
     $debunk_tags = is_array($debunk_tags) ? $debunk_tags : array($debunk_tags);
     
-    // Use the helper function to check for tags
     $is_fact_check = has_any_term($fact_check_tags, get_option('crg_taxonomy_fact_check'), $post->ID);
     $is_debunk = has_any_term($debunk_tags, get_option('crg_taxonomy_debunk'), $post->ID);
     
@@ -332,18 +364,17 @@ function crg_generate_claim_review_text($post) {
     $post_title = get_the_title($post->ID);
     
     if ($is_fact_check) {
-        // For fact-checks, use the part after ":", "|", or ","
-        $separators = array(':', '|', ',');
-        $parts = str_replace($separators, $separators[0], $post_title, $count);
-        $parts = explode($separators[0], $parts, 2);
-        $claim_reviewed = isset($parts[1]) ? trim($parts[1]) : $post_title;
-        // Remove quote marks
-        $claim_reviewed = str_replace('"', '', $claim_reviewed);
+        $claim_reviewed = extract_claim_from_title($post_title);
     } else {
-        // For debunks, use negacion_a_afirmacion_simple
-        $claim_reviewed = negacion_a_afirmacion_simple($post_title);
-        if ($claim_reviewed === null) {
-            $claim_reviewed = $post_title; // Use original title if no transformation
+        // Verificar si está habilitada la conversión
+        $convert_titles = get_option('crg_convert_titles', true);
+        if ($convert_titles) {
+            $claim_reviewed = negacion_a_afirmacion_simple($post_title);
+            if ($claim_reviewed === null) {
+                $claim_reviewed = $post_title;
+            }
+        } else {
+            $claim_reviewed = $post_title;
         }
     }
     
@@ -378,10 +409,17 @@ function crg_generate_claim_review($content) {
     if (!$is_fact_check && !$is_debunk) {
         return $content;
     }
+
+    // Extract rating
+    $rating_value = crg_extract_rating($post);
+    
+    if (!$rating_value) {
+        return $content;
+    }
     
     // Rest of the claim review generation logic...
     $claim_reviewed = crg_generate_claim_review_text($post);
-    
+
     // Check for manual claim review
     $manual_claim_review = get_post_meta($post->ID, 'manual_claim_review', true);
     if (!empty($manual_claim_review)) {
@@ -394,18 +432,12 @@ function crg_generate_claim_review($content) {
     // Determine the claim author
     if ($is_fact_check) {
         preg_match('/^([^:|,]+)/', $post->post_title, $matches);
-        $claim_author = isset($matches[1]) ? trim($matches[1]) : 'Unknown';
+        $claim_author = isset($matches[1]) ? trim($matches[1]) : 'Desconocido';
     } else {
         $claim_author = get_option('crg_debunk_author', 'Social media');
     }
     
-    // Extract rating
-    $rating_value = crg_extract_rating($post);
-    
-    if (!$rating_value) {
-        return $content;
-    }
-    
+
     // Prepare the ClaimReview schema
     $claim_review = array(
         '@context' => 'https://schema.org',
