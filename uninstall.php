@@ -16,7 +16,8 @@ $options_to_delete = array(
     'crg_organization_logo',
     'crg_debunk_author',
     'crg_ratings',
-    'crg_convert_titles'
+    'crg_convert_titles',
+    'crg_disable_claim_author'
 );
 
 // Delete each option

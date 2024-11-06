@@ -61,6 +61,10 @@ function crg_register_settings() {
     register_setting('crg_settings', 'crg_convert_titles', [
         'default' => true
     ]);
+    register_setting('crg_settings', 'crg_disable_claim_author', [
+        'type' => 'boolean',
+        'default' => false
+    ]);
 
     add_settings_section('crg_main_section', 'Main Settings', null, 'crg-settings');
 
@@ -71,7 +75,6 @@ function crg_register_settings() {
     add_settings_field('crg_debunk_tag', 'Slugs para identificar verificaciones', 'crg_debunk_tag_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_organization_name', 'Nombre de la Organización', 'crg_organization_name_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_organization_logo', 'URL del Logo de la Organización', 'crg_organization_logo_callback', 'crg-settings', 'crg_main_section');
-    add_settings_field('crg_debunk_author', 'Autor de desinformación predeterminado', 'crg_debunk_author_callback', 'crg-settings', 'crg_main_section');
     add_settings_field('crg_rating_taxonomy', 'Taxonomía de Calificaciones', 'crg_rating_taxonomy_callback', 'crg-settings', 'crg_main_section');
     add_settings_field(
         'crg_ratings', 
@@ -80,7 +83,6 @@ function crg_register_settings() {
         'crg-settings', 
         'crg_main_section'
     );  
-    // Y agregar el campo:
     add_settings_field(
         'crg_convert_titles', 
         'Convertir titulares a descripciones', 
@@ -88,6 +90,14 @@ function crg_register_settings() {
         'crg-settings', 
         'crg_main_section'
     ); 
+    add_settings_field('crg_debunk_author', 'Autor de desinformación predeterminado', 'crg_debunk_author_callback', 'crg-settings', 'crg_main_section');
+    add_settings_field(
+        'crg_disable_claim_author',
+        'Deshabilitar autor de la afirmación',
+        'crg_disable_claim_author_callback',
+        'crg-settings',
+        'crg_main_section'
+    );
 }
 add_action('admin_init', 'crg_register_settings');
 
@@ -278,6 +288,12 @@ function crg_convert_titles_callback() {
     echo '<p class="description">Si está activado, convierte automáticamente las negaciones en afirmaciones.</p>';
 }
 
+function crg_disable_claim_author_callback() {
+    $disable_claim_author = get_option('crg_disable_claim_author', false);
+    echo '<input type="checkbox" name="crg_disable_claim_author" value="1" ' . checked(1, $disable_claim_author, false) . '/>';
+    echo '<p class="description">Si está activado, se omite el autor de la afirmación del schema ClaimReview.</p>';
+}
+
 // Function to extract rating based on the chosen method
 function crg_extract_rating($post) {
 
@@ -437,6 +453,20 @@ function crg_generate_claim_review($content) {
         $claim_author = get_option('crg_debunk_author', 'Social media');
     }
     
+        
+    // Detectar si se usa autor o no
+    $item_reviewed = array(
+        '@type' => 'Claim',
+        'datePublished' => get_the_date('c')
+    );
+
+    // Only add author if not disabled
+    if (!get_option('crg_disable_claim_author', false)) {
+        $item_reviewed['author'] = array(
+            '@type' => 'Person',
+            'name' => $claim_author
+        );
+    }
 
     // Prepare the ClaimReview schema
     $claim_review = array(
@@ -444,14 +474,7 @@ function crg_generate_claim_review($content) {
         '@type' => 'ClaimReview',
         'url' => $post_url,
         'claimReviewed' => $claim_reviewed,
-        'itemReviewed' => array(
-            '@type' => 'Claim',
-            'author' => array(
-                '@type' => 'Person',
-                'name' => $claim_author
-            ),
-            'datePublished' => get_the_date('c')
-        ),
+        'itemReviewed' => $item_reviewed,
         'author' => array(
             '@type' => 'Organization',
             'name' => get_option('crg_organization_name'),
