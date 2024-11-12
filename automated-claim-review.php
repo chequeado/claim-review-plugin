@@ -397,13 +397,18 @@ function crg_generate_claim_review_text($post) {
     return $claim_reviewed;
 }
 
-function crg_generate_claim_review($content) {
-    // Evitar múltiples ejecuciones
-    static $has_run = false;
-    if ($has_run || !is_singular() || !in_the_loop()) {
-        return $content;
+// First, remove the content filter
+remove_filter('the_content', 'crg_generate_claim_review');
+
+// Add the wp_head action
+add_action('wp_head', 'crg_output_claim_review_schema', 99);
+
+// Create new function to output schema in head
+function crg_output_claim_review_schema() {
+    // Only run on single posts
+    if (!is_singular()) {
+        return;
     }
-    $has_run = true;
     
     global $post;
     
@@ -415,7 +420,7 @@ function crg_generate_claim_review($content) {
     $fact_check_tags = is_array($fact_check_tags) ? $fact_check_tags : array($fact_check_tags);
     $debunk_tags = is_array($debunk_tags) ? $debunk_tags : array($debunk_tags);
     
-    // Check for fact check or debunk tags using the helper function
+    // Check for fact check or debunk tags
     $fact_check_taxonomy = get_option('crg_taxonomy_fact_check');
     $debunk_taxonomy = get_option('crg_taxonomy_debunk');
     
@@ -423,17 +428,17 @@ function crg_generate_claim_review($content) {
     $is_debunk = has_any_term($debunk_tags, $debunk_taxonomy, $post->ID);
     
     if (!$is_fact_check && !$is_debunk) {
-        return $content;
+        return;
     }
 
     // Extract rating
     $rating_value = crg_extract_rating($post);
     
     if (!$rating_value) {
-        return $content;
+        return;
     }
     
-    // Rest of the claim review generation logic...
+    // Get claim reviewed text
     $claim_reviewed = crg_generate_claim_review_text($post);
 
     // Check for manual claim review
@@ -453,8 +458,7 @@ function crg_generate_claim_review($content) {
         $claim_author = get_option('crg_debunk_author', 'Social media');
     }
     
-        
-    // Detectar si se usa autor o no
+    // Build itemReviewed object
     $item_reviewed = array(
         '@type' => 'Claim',
         'datePublished' => get_the_date('c')
@@ -492,13 +496,12 @@ function crg_generate_claim_review($content) {
         )
     );
     
-    // Generate the script tag
-    $script = '<script type="application/ld+json">' . json_encode($claim_review, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '</script>';
-    
-    return $script . $content;
+    // Output the schema in the head
+    echo "\n<!-- ClaimReview Schema by ClaimReview Automático -->\n";
+    echo '<script type="application/ld+json">';
+    echo json_encode($claim_review, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    echo "</script>\n";
 }
-
-add_filter('the_content', 'crg_generate_claim_review');
 
 // Add Meta Box to post editor
 function crg_add_meta_box() {
