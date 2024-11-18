@@ -8,8 +8,8 @@
 **Requires PHP:** 5.4  
 **Recommended PHP:** 7.2+  
 **Stable tag:** 2.0  
-**License:** GPLv2 or later  
-**License URI:** http://www.gnu.org/licenses/gpl-2.0.html  
+**License:** GPLv3 or later  
+**License URI**: https://www.gnu.org/licenses/gpl-3.0.html 
 
 Genera automáticamente el esquema ClaimReview para artículos de verificación y fact-checking.
 
@@ -31,7 +31,7 @@ El plugin fue desarrollado por Chequeado y permite a los verificadores de datos:
 * Compatible con el formato de títulos más común en fact-checking
 * Integración con las calificaciones existentes del medio
 
-## Installation
+## Instalacion
 1. Sube el plugin 'claim-review-plugin' al directorio `/wp-content/plugins/` o instala vía admin de WordPress
 2. Activa el plugin a través del menú 'Plugins' en WordPress
 3. Ve a 'Ajustes > ClaimReview Automático' para configurar el plugin
@@ -55,6 +55,7 @@ El plugin fue desarrollado por Chequeado y permite a los verificadores de datos:
    * Nombre de la organización
    * URL del logo
    * Valor predeterminado para usar como autores u origen de las desinformación (ej: "Posteos virales")
+5. **Calificaciones**: La escala de calificaciones que se utilizara para los artículos de fact-checking y desinformaciones, ordenado desde el peor valor (falso) hacia el mejor (verdadero)
 
 ## Usage
 1. Publica un artículo del tipo de contenido configurado
