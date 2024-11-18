@@ -6,6 +6,8 @@ Description: Genera el schema ClaimReview para chequeos y verificaciones de mane
 Version: 2.0
 Author: Chequeado
 Author URI: https://chequeado.com
+License: GPLv3 or later
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
 */
 
 // Include the negacion_a_afirmacion_simple function
