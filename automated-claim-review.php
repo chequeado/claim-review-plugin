@@ -518,7 +518,7 @@ function crg_output_claim_review_schema() {
     echo "\n<!-- ClaimReview Schema by ClaimReview Automático -->\n";
     echo '<script type="application/ld+json">';
     echo json_encode($claim_review, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    echo "</script>\n
+    echo "</script>\n";
 }
 
 // Add Meta Box to post editor
