@@ -320,30 +320,24 @@ function crg_disable_claim_author_callback() {
 
 // Function to extract rating based on the chosen method
 function crg_extract_rating($post) {
-
     $rating_taxonomy = get_option('crg_rating_taxonomy');
-
-    $rating_tag = [];
-
-    foreach(wp_get_post_terms( $post->ID, $rating_taxonomy ) as $taxonomy)
-    {
-        array_push ($rating_tag, $taxonomy->name);
-    }
-
     $rating_array = get_option('crg_ratings');
-
-    $final_rating = array_intersect($rating_tag, $rating_array);   
-
-    if (empty($final_rating)){
+    
+    if (empty($rating_array)) {
         return null;
-    } else {
-        $rating_value = array_search(array_values($final_rating)[0], $rating_array);
-
-        return [
-            'tag_name' => array_values($final_rating)[0],
-            'rating_value' => $rating_value + 1
-        ];
     }
+
+    // Check each rating in order
+    foreach ($rating_array as $index => $rating) {
+        if (has_any_term($rating, $rating_taxonomy, $post->ID)) {
+            return [
+                'tag_name' => $rating,
+                'rating_value' => $index + 1
+            ];
+        }
+    }
+    
+    return null;
 }
 
 // Function to check if post has any tag from a list of tags in a taxonomy
