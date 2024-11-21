@@ -3,9 +3,11 @@
 Plugin Name: ClaimReview Automático
 Plugin URI: https://github.com/chequeado/claim-review-plugin
 Description: Genera el schema ClaimReview para chequeos y verificaciones de manera automática
-Version: 2.0
+Version: 2.1
 Author: Chequeado
 Author URI: https://chequeado.com
+License: GPLv3 or later
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
 */
 
 // Include the negacion_a_afirmacion_simple function
@@ -128,8 +130,10 @@ function crg_fact_check_tag_callback() {
     // Convert the array to a newline-separated string for display in the textarea
     $tags_string = implode("\n", $tags);
 
-    echo "<textarea name='crg_fact_check_tag' rows='5' cols='50'>$tags_string</textarea>";
-    echo "<p>Ingresá un slug en cada nueva línea.</p>";
+    ?>
+        <textarea name='crg_fact_check_tag' rows='5' cols='50'><?= esc_html($tags_string); ?></textarea>
+        <p>Ingresá un slug en cada nueva línea.</p>
+    <?php
 }
 
 function crg_debunk_tag_callback() {
@@ -140,24 +144,35 @@ function crg_debunk_tag_callback() {
 
     $tags_string = implode("\n", $tags);
 
-    echo "<textarea name='crg_debunk_tag' rows='5' cols='50'>$tags_string</textarea>";
-    echo "<p>Ingresá un slug en cada nueva línea.</p>";
+    ?>
+        <textarea name='crg_debunk_tag' rows='5' cols='50'><?= esc_html($tags_string); ?></textarea>
+        <p>Ingresá un slug en cada nueva línea.</p>
+    <?php
 }
 
 
 function crg_organization_name_callback() {
     $name = get_option('crg_organization_name');
-    echo "<input type='text' name='crg_organization_name' value='$name' />";
+
+    ?>
+        <input type='text' name='crg_organization_name' value='<?= esc_attr($name); ?>' />
+    <?php
 }
 
 function crg_organization_logo_callback() {
     $logo = get_option('crg_organization_logo');
-    echo "<input type='text' name='crg_organization_logo' value='$logo' />";
+
+    ?>
+        <input type='text' name='crg_organization_logo' value='<?= esc_attr($logo); ?>' />
+    <?php
 }
 
 function crg_debunk_author_callback() {
     $author = get_option('crg_debunk_author', 'Social media');
-    echo "<input type='text' name='crg_debunk_author' value='$author' />";
+
+    ?>
+        <input type='text' name='crg_debunk_author' value='<?= esc_attr($author); ?>' />
+    <?php
 }
 
 function crg_post_type_callback() {
@@ -167,7 +182,10 @@ function crg_post_type_callback() {
     echo '<select id="crg_post_type" name="crg_post_type">';
     foreach ($post_types as $post_type) {
         $selected = ($selected_post_type === $post_type->name) ? 'selected="selected"' : '';
-        echo '<option value="' . esc_attr($post_type->name) . '" ' . $selected . '>' . esc_html($post_type->label) . '</option>';
+
+        ?>
+            <option value="<?= esc_attr($post_type->name); ?>"  <?=  esc_attr($selected); ?> > <?= esc_html($post_type->label); ?> </option>
+        <?php
     }
     echo '</select>';
 }
@@ -180,7 +198,10 @@ function crg_taxonomy_fact_check_callback() {
     echo '<select id="crg_taxonomy_fact_check" name="crg_taxonomy_fact_check">';
     foreach ($taxonomies as $taxonomy) {
         $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
-        echo '<option value="' . esc_attr($taxonomy->name) . '" ' . $selected . '>' . esc_html($taxonomy->label) . '</option>';
+
+        ?>
+            <option value=" <?= esc_attr($taxonomy->name); ?> "  <?= esc_attr($selected); ?>  > <?=  esc_html($taxonomy->label); ?> . </option>
+        <?php
     }
     echo '</select>';
 }
@@ -192,7 +213,10 @@ function crg_taxonomy_debunk_callback() {
     echo '<select id="crg_taxonomy_debunk" name="crg_taxonomy_debunk">';
     foreach ($taxonomies as $taxonomy) {
         $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
-        echo '<option value="' . esc_attr($taxonomy->name) . '" ' . $selected . '>' . esc_html($taxonomy->label) . '</option>';
+
+        ?>
+            <option value=" <?= esc_attr($taxonomy->name) ?> "  <?= esc_attr( $selected ); ?> > <?= esc_html($taxonomy->label) ?> </option>
+        <?php
     }
     echo '</select>';
 }
@@ -276,7 +300,7 @@ function crg_rating_taxonomy_callback() {
     echo '<select id="crg_rating_taxonomy" name="crg_rating_taxonomy">';
     foreach ($taxonomies as $taxonomy) {
         $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
-        echo '<option value="' . esc_attr($taxonomy->name) . '" ' . $selected . '>' . esc_html($taxonomy->label) . '</option>';
+        echo '<option value="' . esc_attr($taxonomy->name) . '" ' . esc_attr($selected) . '>' . esc_html($taxonomy->label) . '</option>';
     }
     echo '</select>';
 
@@ -494,7 +518,7 @@ function crg_output_claim_review_schema() {
     echo "\n<!-- ClaimReview Schema by ClaimReview Automático -->\n";
     echo '<script type="application/ld+json">';
     echo json_encode($claim_review, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    echo "</script>\n";
+    echo "</script>\n
 }
 
 // Add Meta Box to post editor
@@ -587,7 +611,7 @@ function crg_save_meta_box($post_id) {
     }
 
     // Verify nonce
-    if (!wp_verify_nonce($_POST['crg_manual_claim_review_nonce'], 'crg_manual_claim_review_nonce')) {
+    if (!wp_verify_nonce(sanitize_text_field($_POST['crg_manual_claim_review_nonce']), 'crg_manual_claim_review_nonce')) {
         return;
     }
 
