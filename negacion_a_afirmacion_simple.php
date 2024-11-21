@@ -67,4 +67,3 @@ function negacion_a_afirmacion_simple($texto) {
     return $texto;
 }
 
-?>

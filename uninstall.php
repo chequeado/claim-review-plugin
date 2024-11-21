@@ -24,10 +24,3 @@ $options_to_delete = array(
 foreach ($options_to_delete as $option) {
     delete_option($option);
 }
-
-// Remove post meta for all posts
-global $wpdb;
-$wpdb->delete(
-    $wpdb->postmeta,
-    array('meta_key' => 'manual_claim_review')
-);
