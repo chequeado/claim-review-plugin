@@ -2,10 +2,10 @@
 Contributors: chequeado
 Tags: schema, fact-checking, claim-review, verificación, chequeo
 Requires at least: 4.7
-Tested up to: 6.4
+Tested up to: 6.7
 Requires PHP: 5.4
 Recommended PHP: 7.2+
-Stable tag: 2.0
+Stable tag: 2.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
