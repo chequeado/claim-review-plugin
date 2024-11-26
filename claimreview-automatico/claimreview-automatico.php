@@ -2,15 +2,22 @@
 /*
 Plugin Name: ClaimReview Automático
 Plugin URI: https://github.com/chequeado/claim-review-plugin
-Description: Genera el schema ClaimReview para chequeos y verificaciones de manera automática
-Version: 2.1
+Description: Genera automáticamente el esquema ClaimReview para artículos de verificación y fact-checking.
+Version: 1.0
+Requires at least: 4.7
+Requires PHP: 5.4
 Author: Chequeado
 Author URI: https://chequeado.com
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 */
 
-// Include the negacion_a_afirmacion_simple function
+// Ensure no whitespace or output before the opening PHP tag
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly
+}
+
+// Include the cra_negacion_a_afirmacion_simple function
 include_once(plugin_dir_path(__FILE__) . 'includes/claim-converter.php');
 
 // Add settings page
@@ -18,8 +25,6 @@ function cra_add_settings_page() {
     add_options_page('Ajustes ClaimReview Automático', 'ClaimReview Automático', 'manage_options', 'cra-settings', 'cra_render_settings_page');
 }
 add_action('admin_menu', 'cra_add_settings_page');
-
-
 
 // Render settings page
 function cra_render_settings_page() {
@@ -101,52 +106,76 @@ function cra_register_settings() {
     );
 }
 add_action('admin_init', 'cra_register_settings');
-
-function cra_sanitize_tags($input) {
-    // If input is already an array, just sanitize each element
-    if (is_array($input)) {
-        return array_filter(array_map('trim', $input));
-    }
-    
-    // If input is a string (from textarea), split by newlines
-    if (is_string($input)) {
-        return array_filter(array_map('trim', explode("\n", $input)));
-    }
-    
-    // If input is neither string nor array, return empty array
-    return array();
-}
-
-// Settings callbacks
-
+// Update the settings callbacks
 function cra_fact_check_tag_callback() {
-    // Get the array of tags; if it's a string (from an old version), convert it to an array
-    $tags = get_option('cra_fact_check_tag', []);
-    if (!is_array($tags)) {
-        $tags = explode("\n", $tags);
+    $selected_tags = get_option('cra_fact_check_tag', []);
+    $taxonomy = get_option('cra_taxonomy_fact_check');
+    
+    if (!is_array($selected_tags)) {
+        $selected_tags = explode("\n", $selected_tags);
     }
+    
+    $terms = get_terms([
+        'taxonomy' => $taxonomy,
+        'hide_empty' => false,
+    ]);
 
-    // Convert the array to a newline-separated string for display in the textarea
-    $tags_string = implode("\n", $tags);
-
+    if (is_wp_error($terms)) {
+        echo '<p>Error: Please select a taxonomy first</p>';
+        return;
+    }
+    
     ?>
-        <textarea name='cra_fact_check_tag' rows='5' cols='50'><?php echo esc_html($tags_string); ?></textarea>
-        <p>Ingresá un slug en cada nueva línea.</p>
+    <div class="taxonomy-select">
+        <select name="cra_fact_check_tag[]" multiple size="8" style="width: 300px;">
+            <?php foreach ($terms as $term): ?>
+                <option value="<?php echo esc_attr($term->slug); ?>" 
+                    <?php echo in_array($term->slug, $selected_tags) ? 'selected' : ''; ?>>
+                    <?php echo esc_html($term->name); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <p class="description">Hold Ctrl/Cmd to select multiple items</p>
+    </div>
     <?php
 }
 
 function cra_debunk_tag_callback() {
-    $tags = get_option('cra_debunk_tag', []);
-    if (!is_array($tags)) {
-        $tags = explode("\n", $tags);
+    $selected_tags = get_option('cra_debunk_tag', []);
+    $taxonomy = get_option('cra_taxonomy_debunk');
+    
+    if (!is_array($selected_tags)) {
+        $selected_tags = explode("\n", $selected_tags);
     }
+    
+    $terms = get_terms([
+        'taxonomy' => $taxonomy,
+        'hide_empty' => false,
+    ]);
 
-    $tags_string = implode("\n", $tags);
-
+    if (is_wp_error($terms)) {
+        echo '<p>Error: Please select a taxonomy first</p>';
+        return;
+    }
+    
     ?>
-        <textarea name='cra_debunk_tag' rows='5' cols='50'><?php echo esc_html($tags_string); ?></textarea>
-        <p>Ingresá un slug en cada nueva línea.</p>
+    <div class="taxonomy-select">
+        <select name="cra_debunk_tag[]" multiple size="8" style="width: 300px;">
+            <?php foreach ($terms as $term): ?>
+                <option value="<?php echo esc_attr($term->slug); ?>" 
+                    <?php echo in_array($term->slug, $selected_tags) ? 'selected' : ''; ?>>
+                    <?php echo esc_html($term->name); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <p class="description">Hold Ctrl/Cmd to select multiple items</p>
+    </div>
     <?php
+}
+
+// Update sanitize callback
+function cra_sanitize_tags($input) {
+    return is_array($input) ? array_map('sanitize_text_field', $input) : [];
 }
 
 
@@ -199,7 +228,7 @@ function cra_taxonomy_fact_check_callback() {
         $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
 
         ?>
-            <option value=" <?php echo esc_attr($taxonomy->name); ?> "  <?php echo esc_attr($selected); ?>  > <?php echo  esc_html($taxonomy->label); ?> . </option>
+            <option value=" <?php echo esc_attr($taxonomy->name); ?> "  <?php echo esc_attr($selected); ?>  > <?php echo  esc_html($taxonomy->label); ?> </option>
         <?php
     }
     echo '</select>';
@@ -235,61 +264,34 @@ function cra_sanitize_ratings($input) {
 }
 
 function cra_ratings_callback() {
-    $ratings = get_option('cra_ratings', []);
+    $selected_ratings = get_option('cra_ratings', []);
+    $selected_taxonomy = get_option('cra_rating_taxonomy');
+    
+    $terms = get_terms([
+        'taxonomy' => $selected_taxonomy,
+        'hide_empty' => false,
+    ]);
 
-    // Display a label and the button for adding new rows
+    if (is_wp_error($terms)) {
+        echo '<p>Error: Please select a taxonomy first</p>';
+        return;
+    }
     ?>
-    <div id="cra_ratings_container">
-        <?php
-        if (!empty($ratings)) {
-            foreach ($ratings as $index => $rating) {
-                ?>
-                <div class="cra_rating_row">
-                    <input type="text" name="cra_ratings[]" value="<?php echo esc_attr($rating); ?>" />
-                    <button class="button remove-rating">Borrar</button>
-                </div>
-                <?php
-            }
-        } else {
-            // Display an empty row if no ratings are present
-            ?>
-            <div class="cra_rating_row">
-                <input type="text" name="cra_ratings[]" value="" />
-                <button class="button remove-rating">Borrar</button>
-            </div>
-            <?php
-        }
-        ?>
+    <div class="taxonomy-select">
+        <select name="cra_ratings[]" multiple size="8" style="width: 300px;">
+            <?php foreach ($terms as $term): ?>
+                <option value="<?php echo esc_attr($term->name); ?>" 
+                    <?php echo in_array($term->name, $selected_ratings) ? 'selected' : ''; ?>>
+                    <?php echo esc_html($term->name); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <p class="description">Hold Ctrl/Cmd to select multiple items.<br/>
+        ¡IMPORTANTE! Orden: arriba va la peor calificación (ej: Falso) y sigue en orden hasta la mejor calificación abajo (ej: Verdadero).</p>
     </div>
-    <button class="button add-rating">Agregar Calificación</button>
-    <p class="description">¡IMPORTANTE!<br/>Orden: arriba va la peor calificación (ej: Falso) y sigue en orden hasta la mejor calificación abajo (ej: Verdadero).</p>
-
-    <script>
-    jQuery(document).ready(function($) {
-        // Add new rating row
-        $('.add-rating').click(function(e) {
-            e.preventDefault();
-            var newRow = '<div class="cra_rating_row"><input type="text" name="cra_ratings[]" value="" /><button class="button remove-rating">Borrar</button></div>';
-            $('#cra_ratings_container').append(newRow);
-        });
-
-        // Remove rating row
-        $(document).on('click', '.remove-rating', function(e) {
-            e.preventDefault();
-            $(this).parent().remove();
-        });
-    });
-    </script>
-    <style>
-        .cra_rating_row {
-            margin-bottom: 10px;
-        }
-        .cra_rating_row input {
-            width: 300px;
-        }
-    </style>
     <?php
 }
+
 
 function cra_rating_taxonomy_callback() {
 
@@ -402,7 +404,7 @@ function cra_generate_claim_review_text($post) {
         // Verificar si está habilitada la conversión
         $convert_titles = get_option('cra_convert_titles', true);
         if ($convert_titles) {
-            $claim_reviewed = negacion_a_afirmacion_simple($post_title);
+            $claim_reviewed = cra_negacion_a_afirmacion_simple($post_title);
             if ($claim_reviewed === null) {
                 $claim_reviewed = $post_title;
             }
@@ -625,7 +627,7 @@ function cra_save_meta_box($post_id) {
     }
 
     // Get the manual claim review value
-    $manual_claim = isset($_POST['cra_manual_claim_review_nonce']) ? 
+    $manual_claim = isset($_POST['cra_manual_claim_review']) ? 
         sanitize_textarea_field(wp_unslash($_POST['cra_manual_claim_review'])) : '';
 
     // Update or delete the meta field
@@ -636,5 +638,78 @@ function cra_save_meta_box($post_id) {
     }
 }
 add_action('save_post', 'cra_save_meta_box');
+
+// Add this to your existing PHP file
+function cra_admin_footer_scripts() {
+    ?>
+    <script>
+    jQuery(document).ready(function($) {
+        function updateTaxonomyTerms(taxonomy, selectElement) {
+            $.post(ajaxurl, {
+                action: 'get_taxonomy_terms',
+                taxonomy: taxonomy,
+                nonce: <?php echo wp_json_encode(wp_create_nonce('get_taxonomy_terms')); ?>
+            }, function(response) {
+                if (response.success) {
+                    selectElement.empty();
+                    response.data.forEach(function(term) {
+                        var option = new Option(
+                            wp.escapeHtml(term.name), 
+                            wp.escapeHtml(term.slug)
+                        );
+                        selectElement.append(option);
+                    });
+                }
+            });
+        }
+
+        $('#cra_taxonomy_fact_check').on('change', function() {
+            updateTaxonomyTerms($(this).val(), $('select[name="cra_fact_check_tag[]"]'));
+        });
+
+        $('#cra_taxonomy_debunk').on('change', function() {
+            updateTaxonomyTerms($(this).val(), $('select[name="cra_debunk_tag[]"]'));
+        });
+
+        $('#cra_rating_taxonomy').on('change', function() {
+            updateTaxonomyTerms($(this).val(), $('select[name="cra_ratings[]"]'));
+        });
+    });
+    </script>
+    <?php
+}
+add_action('admin_footer-settings_page_cra-settings', 'cra_admin_footer_scripts');
+
+function cra_get_taxonomy_terms_ajax() {
+    check_ajax_referer('get_taxonomy_terms', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Unauthorized');
+    }
+
+    if (!isset($_POST['taxonomy'])) {
+        return;
+    }
+
+    $taxonomy = sanitize_text_field(wp_unslash($_POST['taxonomy']));
+    $terms = get_terms([
+        'taxonomy' => $taxonomy,
+        'hide_empty' => false,
+    ]);
+
+    if (is_wp_error($terms)) {
+        wp_send_json_error('Invalid taxonomy');
+    }
+
+    $terms_array = array_map(function($term) {
+        return [
+            'slug' => $term->slug,
+            'name' => $term->name
+        ];
+    }, $terms);
+
+    wp_send_json_success($terms_array);
+}
+add_action('wp_ajax_get_taxonomy_terms', 'cra_get_taxonomy_terms_ajax');
 
 ?>

@@ -5,7 +5,7 @@ Requires at least: 4.7
 Tested up to: 6.7
 Requires PHP: 5.4
 Recommended PHP: 7.2+
-Stable tag: 2.1
+Stable tag: 1.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -71,18 +71,13 @@ El schema no se generará hasta que asignes una calificación válida al artícu
 
 == Changelog ==
 
-= 2.1 =
-* Nuevas opciones de configuración para desactivar generación automática del título
-* Mejor documentación
-
-= 2.0 =
-* Agregada opción para editar manualmente el claim
-* Soporte mejorado para verificaciones de desinformación
-* Interfaz de configuración renovada
-* Mejor manejo de calificaciones personalizadas
-
 = 1.0 =
 * Primera versión pública del plugin
+* Opciones de configuración para desactivar generación automática del título
+* Opción para editar manualmente el claim
+* Soporte para verificaciones de desinformación
+* Interfaz de configuración 
+* Mejor manejo de calificaciones personalizadas
 
 == Contribute ==
 El código fuente está disponible en GitHub: https://github.com/chequeado/claim-review-plugin
