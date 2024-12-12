@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: ClaimReview Automático
+Plugin Name: Automatic structured data for ClaimReview
 Plugin URI: https://github.com/chequeado/claim-review-plugin
 Description: Genera automáticamente el esquema ClaimReview para artículos de verificación y fact-checking.
 Version: 1.0
@@ -22,7 +22,7 @@ include_once(plugin_dir_path(__FILE__) . 'includes/claim-converter.php');
 
 // Add settings page
 function cra_add_settings_page() {
-    add_options_page('Ajustes ClaimReview Automático', 'ClaimReview Automático', 'manage_options', 'cra-settings', 'cra_render_settings_page');
+    add_options_page('Automatic structured data for ClaimReview', 'Automatic structured data for ClaimReview', 'manage_options', 'cra-settings', 'cra_render_settings_page');
 }
 add_action('admin_menu', 'cra_add_settings_page');
 
@@ -30,7 +30,7 @@ add_action('admin_menu', 'cra_add_settings_page');
 function cra_render_settings_page() {
     ?>
     <div class="wrap">
-        <h1>Ajustes ClaimReview</h1>
+        <h1>Automatic structured data for ClaimReview</h1>
         <form method="post" action="options.php">
             <?php
             settings_fields('cra_settings');
@@ -516,7 +516,7 @@ function cra_output_claim_review_schema() {
     );
     
     // Output the schema in the head
-    echo "\n<!-- ClaimReview Schema by ClaimReview Automático -->\n";
+    echo "\n<!-- ClaimReview Schema by Automatic structured data for ClaimReview -->\n";
     echo '<script type="application/ld+json">';
     echo wp_json_encode($claim_review, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     echo "</script>\n";

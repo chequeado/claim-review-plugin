@@ -1,4 +1,4 @@
-=== ClaimReview Automático ===
+=== Automatic structured data for ClaimReview ===
 Contributors: chequeado
 Tags: schema, fact-checking, claim-review, verificación, chequeo
 Requires at least: 4.7
@@ -12,7 +12,7 @@ License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Genera automáticamente el esquema ClaimReview para artículos de verificación y fact-checking.
 
 == Descripción ==
-ClaimReview Automático es un plugin que facilita la implementación del esquema ClaimReview en sitios de verificación de datos y fact-checking. Este esquema es un estándar utilizado por Google, Facebook, Bing y otras plataformas para identificar y mostrar contenido verificado. E
+Automatic structured data for ClaimReview es un plugin que facilita la implementación del esquema ClaimReview en sitios de verificación de datos y fact-checking. Este esquema es un estándar utilizado por Google, Facebook, Bing y otras plataformas para identificar y mostrar contenido verificado. E
 
 Este plugin soporta únicamente sitios en español. El plugin transforma de manera automática los títulos de verificaciones en descripciones de la desinformación. Ej: "Es falso que la tierra es plana" se transforma en "La tierra es plana". Esto se debe a que ClaimReview requiere una descripción de la desinformación. Esta función se puede desactivar en la pantalla de ajustes de ClaimReview y además los títulos generados automáticamente se pueden corregir en la pantalla de edición de cada posteo para corregir errores.
 
@@ -26,7 +26,7 @@ El plugin fue desarrollado por Chequeado y permite a los verificadores de datos:
 == Instalación ==
 1. Sube el plugin 'claim-review-plugin' al directorio `/wp-content/plugins/` o instala vía admin de WordPress
 2. Activa el plugin a través del menú 'Plugins' en WordPress
-3. Ve a 'Ajustes > ClaimReview Automático' para configurar el plugin
+3. Ve a 'Ajustes > Automatic structured data for ClaimReview' para configurar el plugin
 4. Configura:
    * El tipo de entrada para los artículos: qué tipo de entrada se usa para tus verificaciones?
    * Las taxonomías para identificar chequeos y/o verificaciones (etiquetas, categorías, etc.)
@@ -57,7 +57,7 @@ El plugin fue desarrollado por Chequeado y permite a los verificadores de datos:
 4. El schema ClaimReview se generará automáticamente
 5. Opcionalmente, puedes editar la frase verificada en la caja "Descripción para Claim Review"
 
-== Frequently Asked Questions ==
+== Preguntas frecuentes ==
 
 = ¿Cómo funciona la generación automática del claim? =
 Para fact-checks, el plugin toma el texto después de ":", "|" o "," en el título.

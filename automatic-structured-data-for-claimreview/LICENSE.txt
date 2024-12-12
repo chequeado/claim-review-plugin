@@ -1,4 +1,4 @@
-ClaimReview Automático
+Automatic structured data for ClaimReview
 
 Copyright 2024 by Chequeado
 
