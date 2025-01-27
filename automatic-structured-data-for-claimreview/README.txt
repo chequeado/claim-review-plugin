@@ -1,5 +1,5 @@
 === Automatic structured data for ClaimReview ===
-Contributors: chequeado
+Contributors: joacosaralegui
 Tags: schema, fact-checking, claim-review, verificación, chequeo
 Requires at least: 4.7
 Tested up to: 6.7

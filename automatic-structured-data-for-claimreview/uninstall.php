@@ -6,18 +6,18 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 
 // Remove all plugin options
 $options_to_delete = array(
-    'cra_post_type',
-    'cra_taxonomy_fact_check',
-    'cra_taxonomy_debunk',
-    'cra_fact_check_tag',
-    'cra_debunk_tag',
-    'cra_rating_taxonomy',
-    'cra_organization_name',
-    'cra_organization_logo',
-    'cra_debunk_author',
-    'cra_ratings',
-    'cra_convert_titles',
-    'cra_disable_claim_author'
+    'asdcr_post_type',
+    'asdcr_taxonomy_fact_check',
+    'asdcr_taxonomy_debunk',
+    'asdcr_fact_check_tag',
+    'asdcr_debunk_tag',
+    'asdcr_rating_taxonomy',
+    'asdcr_organization_name',
+    'asdcr_organization_logo',
+    'asdcr_debunk_author',
+    'asdcr_ratings',
+    'asdcr_convert_titles',
+    'asdcr_disable_claim_author'
 );
 
 // Delete each option

@@ -1,5 +1,5 @@
 <?php
-function cra_negacion_a_afirmacion_simple($texto) {
+function asdcr_negacion_a_afirmacion_simple($texto) {
     $texto_original = $texto;
     
     // 0. Eliminar todo lo que está antes de "|" si existe

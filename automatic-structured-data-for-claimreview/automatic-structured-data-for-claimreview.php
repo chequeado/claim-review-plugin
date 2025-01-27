@@ -17,24 +17,24 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-// Include the cra_negacion_a_afirmacion_simple function
+// Include the asdcr_negacion_a_afirmacion_simple function
 include_once(plugin_dir_path(__FILE__) . 'includes/claim-converter.php');
 
 // Add settings page
-function cra_add_settings_page() {
-    add_options_page('Automatic structured data for ClaimReview', 'Automatic structured data for ClaimReview', 'manage_options', 'cra-settings', 'cra_render_settings_page');
+function asdcr_add_settings_page() {
+    add_options_page('Automatic structured data for ClaimReview', 'Automatic structured data for ClaimReview', 'manage_options', 'asdcr-settings', 'asdcr_render_settings_page');
 }
-add_action('admin_menu', 'cra_add_settings_page');
+add_action('admin_menu', 'asdcr_add_settings_page');
 
 // Render settings page
-function cra_render_settings_page() {
+function asdcr_render_settings_page() {
     ?>
     <div class="wrap">
         <h1>Automatic structured data for ClaimReview</h1>
         <form method="post" action="options.php">
             <?php
-            settings_fields('cra_settings');
-            do_settings_sections('cra-settings');
+            settings_fields('asdcr_settings');
+            do_settings_sections('asdcr-settings');
             submit_button();
             ?>
         </form>
@@ -43,73 +43,105 @@ function cra_render_settings_page() {
 }
 
 // Register settings
-function cra_register_settings() {
-    register_setting('cra_settings', 'cra_post_type');
-    register_setting('cra_settings', 'cra_taxonomy_fact_check');
-    register_setting('cra_settings', 'cra_taxonomy_debunk');
-    register_setting('cra_settings', 'cra_fact_check_tag', [
-        'sanitize_callback' => 'cra_sanitize_tags'
-    ]);
-    register_setting('cra_settings', 'cra_debunk_tag', [
-        'sanitize_callback' => 'cra_sanitize_tags'
-    ]);
-    register_setting('cra_settings', 'cra_organization_name', [
+function asdcr_register_settings() {
+    function asdcr_register_settings() {
+    register_setting('asdcr_settings', 'asdcr_post_type', array(
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field',
+        'default' => 'post'
+    ));
+
+    register_setting('asdcr_settings', 'asdcr_taxonomy_fact_check', array(
+        'type' => 'string',
         'sanitize_callback' => 'sanitize_text_field'
-    ]);
-    register_setting('cra_settings', 'cra_organization_logo', [
+    ));
+
+    register_setting('asdcr_settings', 'asdcr_taxonomy_debunk', array(
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field'
+    ));
+
+    register_setting('asdcr_settings', 'asdcr_fact_check_tag', array(
+        'type' => 'array',
+        'sanitize_callback' => 'asdcr_sanitize_tags',
+        'default' => array()
+    ));
+    register_setting('asdcr_settings', 'asdcr_debunk_tag', array(
+        'type' => 'array',
+        'sanitize_callback' => 'asdcr_sanitize_tags',
+        'default' => array()
+    ));
+    register_setting('asdcr_settings', 'asdcr_organization_name', array(
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field'
+    ));
+    register_setting('asdcr_settings', 'asdcr_organization_logo', array(
+        'type' => 'string',
         'sanitize_callback' => 'esc_url_raw'
-    ]);
-    register_setting('cra_settings', 'cra_debunk_author');
-    register_setting('cra_settings', 'cra_rating_taxonomy');
-    register_setting('cra_settings', 'cra_ratings', [
-        'sanitize_callback' => 'cra_sanitize_ratings'
-    ]);
-    register_setting('cra_settings', 'cra_convert_titles', [
-        'default' => true
-    ]);
-    register_setting('cra_settings', 'cra_disable_claim_author', [
+    ));
+    register_setting('asdcr_settings', 'asdcr_debunk_author', array(
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field',
+        'default' => 'Social media'
+    ));
+    register_setting('asdcr_settings', 'asdcr_rating_taxonomy', array(
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field'
+    ));
+    register_setting('asdcr_settings', 'asdcr_ratings', array(
+        'type' => 'array',
+        'sanitize_callback' => 'asdcr_sanitize_ratings',
+        'default' => array()
+    ));
+    register_setting('asdcr_settings', 'asdcr_convert_titles', array(
         'type' => 'boolean',
+        'sanitize_callback' => 'rest_sanitize_boolean',
+        'default' => true
+    ));
+    register_setting('asdcr_settings', 'asdcr_disable_claim_author', array(
+        'type' => 'boolean',
+        'sanitize_callback' => 'rest_sanitize_boolean',
         'default' => false
-    ]);
+    ));
 
-    add_settings_section('cra_main_section', 'Main Settings', null, 'cra-settings');
+    add_settings_section('asdcr_main_section', 'Main Settings', null, 'asdcr-settings');
 
-    add_settings_field('cra_post_type', 'Tipo de entrada para artículos', 'cra_post_type_callback', 'cra-settings', 'cra_main_section');
-    add_settings_field('cra_taxonomy_fact_check', 'Taxonomía para identificar chequeos', 'cra_taxonomy_fact_check_callback', 'cra-settings', 'cra_main_section');
-    add_settings_field('cra_fact_check_tag', 'Slugs para identificar chequeos ', 'cra_fact_check_tag_callback', 'cra-settings', 'cra_main_section');
-    add_settings_field('cra_taxonomy_debunk', 'Taxonomía para identificar verificaciones', 'cra_taxonomy_debunk_callback', 'cra-settings', 'cra_main_section');
-    add_settings_field('cra_debunk_tag', 'Slugs para identificar verificaciones', 'cra_debunk_tag_callback', 'cra-settings', 'cra_main_section');
-    add_settings_field('cra_organization_name', 'Nombre de la Organización', 'cra_organization_name_callback', 'cra-settings', 'cra_main_section');
-    add_settings_field('cra_organization_logo', 'URL del Logo de la Organización', 'cra_organization_logo_callback', 'cra-settings', 'cra_main_section');
-    add_settings_field('cra_rating_taxonomy', 'Taxonomía de Calificaciones', 'cra_rating_taxonomy_callback', 'cra-settings', 'cra_main_section');
+    add_settings_field('asdcr_post_type', 'Tipo de entrada para artículos', 'asdcr_post_type_callback', 'asdcr-settings', 'asdcr_main_section');
+    add_settings_field('asdcr_taxonomy_fact_check', 'Taxonomía para identificar chequeos', 'asdcr_taxonomy_fact_check_callback', 'asdcr-settings', 'asdcr_main_section');
+    add_settings_field('asdcr_fact_check_tag', 'Slugs para identificar chequeos ', 'asdcr_fact_check_tag_callback', 'asdcr-settings', 'asdcr_main_section');
+    add_settings_field('asdcr_taxonomy_debunk', 'Taxonomía para identificar verificaciones', 'asdcr_taxonomy_debunk_callback', 'asdcr-settings', 'asdcr_main_section');
+    add_settings_field('asdcr_debunk_tag', 'Slugs para identificar verificaciones', 'asdcr_debunk_tag_callback', 'asdcr-settings', 'asdcr_main_section');
+    add_settings_field('asdcr_organization_name', 'Nombre de la Organización', 'asdcr_organization_name_callback', 'asdcr-settings', 'asdcr_main_section');
+    add_settings_field('asdcr_organization_logo', 'URL del Logo de la Organización', 'asdcr_organization_logo_callback', 'asdcr-settings', 'asdcr_main_section');
+    add_settings_field('asdcr_rating_taxonomy', 'Taxonomía de Calificaciones', 'asdcr_rating_taxonomy_callback', 'asdcr-settings', 'asdcr_main_section');
     add_settings_field(
-        'cra_ratings', 
+        'asdcr_ratings', 
         'Calificaciones', 
-        'cra_ratings_callback', 
-        'cra-settings', 
-        'cra_main_section'
+        'asdcr_ratings_callback', 
+        'asdcr-settings', 
+        'asdcr_main_section'
     );  
     add_settings_field(
-        'cra_convert_titles', 
+        'asdcr_convert_titles', 
         'Convertir titulares a descripciones', 
-        'cra_convert_titles_callback', 
-        'cra-settings', 
-        'cra_main_section'
+        'asdcr_convert_titles_callback', 
+        'asdcr-settings', 
+        'asdcr_main_section'
     ); 
-    add_settings_field('cra_debunk_author', 'Autor de desinformación predeterminado', 'cra_debunk_author_callback', 'cra-settings', 'cra_main_section');
+    add_settings_field('asdcr_debunk_author', 'Autor de desinformación predeterminado', 'asdcr_debunk_author_callback', 'asdcr-settings', 'asdcr_main_section');
     add_settings_field(
-        'cra_disable_claim_author',
+        'asdcr_disable_claim_author',
         'Deshabilitar autor de la afirmación',
-        'cra_disable_claim_author_callback',
-        'cra-settings',
-        'cra_main_section'
+        'asdcr_disable_claim_author_callback',
+        'asdcr-settings',
+        'asdcr_main_section'
     );
 }
-add_action('admin_init', 'cra_register_settings');
+add_action('admin_init', 'asdcr_register_settings');
 // Update the settings callbacks
-function cra_fact_check_tag_callback() {
-    $selected_tags = get_option('cra_fact_check_tag', []);
-    $taxonomy = get_option('cra_taxonomy_fact_check');
+function asdcr_fact_check_tag_callback() {
+    $selected_tags = get_option('asdcr_fact_check_tag', []);
+    $taxonomy = get_option('asdcr_taxonomy_fact_check');
     
     if (!is_array($selected_tags)) {
         $selected_tags = explode("\n", $selected_tags);
@@ -127,7 +159,7 @@ function cra_fact_check_tag_callback() {
     
     ?>
     <div class="taxonomy-select">
-        <select name="cra_fact_check_tag[]" multiple size="8" style="width: 300px;">
+        <select name="asdcr_fact_check_tag[]" multiple size="8" style="width: 300px;">
             <?php foreach ($terms as $term): ?>
                 <option value="<?php echo esc_attr($term->slug); ?>" 
                     <?php echo in_array($term->slug, $selected_tags) ? 'selected' : ''; ?>>
@@ -140,9 +172,9 @@ function cra_fact_check_tag_callback() {
     <?php
 }
 
-function cra_debunk_tag_callback() {
-    $selected_tags = get_option('cra_debunk_tag', []);
-    $taxonomy = get_option('cra_taxonomy_debunk');
+function asdcr_debunk_tag_callback() {
+    $selected_tags = get_option('asdcr_debunk_tag', []);
+    $taxonomy = get_option('asdcr_taxonomy_debunk');
     
     if (!is_array($selected_tags)) {
         $selected_tags = explode("\n", $selected_tags);
@@ -160,7 +192,7 @@ function cra_debunk_tag_callback() {
     
     ?>
     <div class="taxonomy-select">
-        <select name="cra_debunk_tag[]" multiple size="8" style="width: 300px;">
+        <select name="asdcr_debunk_tag[]" multiple size="8" style="width: 300px;">
             <?php foreach ($terms as $term): ?>
                 <option value="<?php echo esc_attr($term->slug); ?>" 
                     <?php echo in_array($term->slug, $selected_tags) ? 'selected' : ''; ?>>
@@ -174,40 +206,40 @@ function cra_debunk_tag_callback() {
 }
 
 // Update sanitize callback
-function cra_sanitize_tags($input) {
+function asdcr_sanitize_tags($input) {
     return is_array($input) ? array_map('sanitize_text_field', $input) : [];
 }
 
 
-function cra_organization_name_callback() {
-    $name = get_option('cra_organization_name');
+function asdcr_organization_name_callback() {
+    $name = get_option('asdcr_organization_name');
 
     ?>
-        <input type='text' name='cra_organization_name' value='<?php echo esc_attr($name); ?>' />
+        <input type='text' name='asdcr_organization_name' value='<?php echo esc_attr($name); ?>' />
     <?php
 }
 
-function cra_organization_logo_callback() {
-    $logo = get_option('cra_organization_logo');
+function asdcr_organization_logo_callback() {
+    $logo = get_option('asdcr_organization_logo');
 
     ?>
-        <input type='text' name='cra_organization_logo' value='<?php echo esc_attr($logo); ?>' />
+        <input type='text' name='asdcr_organization_logo' value='<?php echo esc_attr($logo); ?>' />
     <?php
 }
 
-function cra_debunk_author_callback() {
-    $author = get_option('cra_debunk_author', 'Social media');
+function asdcr_debunk_author_callback() {
+    $author = get_option('asdcr_debunk_author', 'Social media');
 
     ?>
-        <input type='text' name='cra_debunk_author' value='<?php echo esc_attr($author); ?>' />
+        <input type='text' name='asdcr_debunk_author' value='<?php echo esc_attr($author); ?>' />
     <?php
 }
 
-function cra_post_type_callback() {
-    $selected_post_type = get_option('cra_post_type');
+function asdcr_post_type_callback() {
+    $selected_post_type = get_option('asdcr_post_type');
     $post_types = get_post_types(array('public' => true), 'objects');
 
-    echo '<select id="cra_post_type" name="cra_post_type">';
+    echo '<select id="asdcr_post_type" name="asdcr_post_type">';
     foreach ($post_types as $post_type) {
         $selected = ($selected_post_type === $post_type->name) ? 'selected="selected"' : '';
 
@@ -219,11 +251,11 @@ function cra_post_type_callback() {
 }
 
 
-function cra_taxonomy_fact_check_callback() {
-    $selected_taxonomy = get_option('cra_taxonomy_fact_check');
+function asdcr_taxonomy_fact_check_callback() {
+    $selected_taxonomy = get_option('asdcr_taxonomy_fact_check');
     $taxonomies = get_taxonomies(array('public' => true), 'objects');
 
-    echo '<select id="cra_taxonomy_fact_check" name="cra_taxonomy_fact_check">';
+    echo '<select id="asdcr_taxonomy_fact_check" name="asdcr_taxonomy_fact_check">';
     foreach ($taxonomies as $taxonomy) {
         $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
 
@@ -234,11 +266,11 @@ function cra_taxonomy_fact_check_callback() {
     echo '</select>';
 }
     
-function cra_taxonomy_debunk_callback() {
-    $selected_taxonomy = get_option('cra_taxonomy_debunk');
+function asdcr_taxonomy_debunk_callback() {
+    $selected_taxonomy = get_option('asdcr_taxonomy_debunk');
     $taxonomies = get_taxonomies(array('public' => true), 'objects');
 
-    echo '<select id="cra_taxonomy_debunk" name="cra_taxonomy_debunk">';
+    echo '<select id="asdcr_taxonomy_debunk" name="asdcr_taxonomy_debunk">';
     foreach ($taxonomies as $taxonomy) {
         $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
 
@@ -249,7 +281,7 @@ function cra_taxonomy_debunk_callback() {
     echo '</select>';
 }
 
-function cra_sanitize_ratings($input) {
+function asdcr_sanitize_ratings($input) {
     if (!is_array($input)) {
         return [];
     }
@@ -263,9 +295,9 @@ function cra_sanitize_ratings($input) {
     return $output;
 }
 
-function cra_ratings_callback() {
-    $selected_ratings = get_option('cra_ratings', []);
-    $selected_taxonomy = get_option('cra_rating_taxonomy');
+function asdcr_ratings_callback() {
+    $selected_ratings = get_option('asdcr_ratings', []);
+    $selected_taxonomy = get_option('asdcr_rating_taxonomy');
     
     $terms = get_terms([
         'taxonomy' => $selected_taxonomy,
@@ -278,7 +310,7 @@ function cra_ratings_callback() {
     }
     ?>
     <div class="taxonomy-select">
-        <select name="cra_ratings[]" multiple size="8" style="width: 300px;">
+        <select name="asdcr_ratings[]" multiple size="8" style="width: 300px;">
             <?php foreach ($terms as $term): ?>
                 <option value="<?php echo esc_attr($term->name); ?>" 
                     <?php echo in_array($term->name, $selected_ratings) ? 'selected' : ''; ?>>
@@ -293,12 +325,12 @@ function cra_ratings_callback() {
 }
 
 
-function cra_rating_taxonomy_callback() {
+function asdcr_rating_taxonomy_callback() {
 
-    $selected_taxonomy = get_option('cra_rating_taxonomy');
+    $selected_taxonomy = get_option('asdcr_rating_taxonomy');
     $taxonomies = get_taxonomies(array('public' => true), 'objects');
 
-    echo '<select id="cra_rating_taxonomy" name="cra_rating_taxonomy">';
+    echo '<select id="asdcr_rating_taxonomy" name="asdcr_rating_taxonomy">';
     foreach ($taxonomies as $taxonomy) {
         $selected = ($selected_taxonomy === $taxonomy->name) ? 'selected="selected"' : '';
         echo '<option value="' . esc_attr($taxonomy->name) . '" ' . esc_attr($selected) . '>' . esc_html($taxonomy->label) . '</option>';
@@ -307,22 +339,22 @@ function cra_rating_taxonomy_callback() {
 
 }
 
-function cra_convert_titles_callback() {
-    $convert_titles = get_option('cra_convert_titles', true);
-    echo '<input type="checkbox" name="cra_convert_titles" value="1" ' . checked(1, $convert_titles, false) . '/>';
+function asdcr_convert_titles_callback() {
+    $convert_titles = get_option('asdcr_convert_titles', true);
+    echo '<input type="checkbox" name="asdcr_convert_titles" value="1" ' . checked(1, $convert_titles, false) . '/>';
     echo '<p class="description">Si está activado, convierte automáticamente las negaciones en afirmaciones.</p>';
 }
 
-function cra_disable_claim_author_callback() {
-    $disable_claim_author = get_option('cra_disable_claim_author', false);
-    echo '<input type="checkbox" name="cra_disable_claim_author" value="1" ' . checked(1, $disable_claim_author, false) . '/>';
+function asdcr_disable_claim_author_callback() {
+    $disable_claim_author = get_option('asdcr_disable_claim_author', false);
+    echo '<input type="checkbox" name="asdcr_disable_claim_author" value="1" ' . checked(1, $disable_claim_author, false) . '/>';
     echo '<p class="description">Si está activado, se omite el autor de la afirmación del schema ClaimReview.</p>';
 }
 
 // Function to extract rating based on the chosen method
-function cra_extract_rating($post) {
-    $rating_taxonomy = get_option('cra_rating_taxonomy');
-    $rating_array = get_option('cra_ratings');
+function asdcr_extract_rating($post) {
+    $rating_taxonomy = get_option('asdcr_rating_taxonomy');
+    $rating_array = get_option('asdcr_ratings');
     
     if (empty($rating_array)) {
         return null;
@@ -330,7 +362,7 @@ function cra_extract_rating($post) {
 
     // Check each rating in order
     foreach ($rating_array as $index => $rating) {
-        if (cra_has_any_term($rating, $rating_taxonomy, $post->ID)) {
+        if (asdcr_has_any_term($rating, $rating_taxonomy, $post->ID)) {
             return [
                 'tag_name' => $rating,
                 'rating_value' => $index + 1
@@ -342,7 +374,7 @@ function cra_extract_rating($post) {
 }
 
 // Function to check if post has any tag from a list of tags in a taxonomy
-function cra_has_any_term($tags, $taxonomy, $post_id) {
+function asdcr_has_any_term($tags, $taxonomy, $post_id) {
     // Ensure tags is an array
     $tags = is_array($tags) ? $tags : array($tags);
     
@@ -363,7 +395,7 @@ function cra_has_any_term($tags, $taxonomy, $post_id) {
     return false;
 }
 
-function cra_extract_claim_from_title($post_title) {
+function asdcr_extract_claim_from_title($post_title) {
     // Definir separadores en orden de prioridad
     $separators = array(':', '|', ',');
     
@@ -382,15 +414,15 @@ function cra_extract_claim_from_title($post_title) {
 }
 
 // Helper function to generate claim review text for the admin table
-function cra_generate_claim_review_text($post) {
-    $fact_check_tags = get_option('cra_fact_check_tag', array());
-    $debunk_tags = get_option('cra_debunk_tag', array());
+function asdcr_generate_claim_review_text($post) {
+    $fact_check_tags = get_option('asdcr_fact_check_tag', array());
+    $debunk_tags = get_option('asdcr_debunk_tag', array());
     
     $fact_check_tags = is_array($fact_check_tags) ? $fact_check_tags : array($fact_check_tags);
     $debunk_tags = is_array($debunk_tags) ? $debunk_tags : array($debunk_tags);
     
-    $is_fact_check = cra_has_any_term($fact_check_tags, get_option('cra_taxonomy_fact_check'), $post->ID);
-    $is_debunk = cra_has_any_term($debunk_tags, get_option('cra_taxonomy_debunk'), $post->ID);
+    $is_fact_check = asdcr_has_any_term($fact_check_tags, get_option('asdcr_taxonomy_fact_check'), $post->ID);
+    $is_debunk = asdcr_has_any_term($debunk_tags, get_option('asdcr_taxonomy_debunk'), $post->ID);
     
     if (!$is_fact_check && !$is_debunk) {
         return 'No es chequeo ni verificación.';
@@ -399,12 +431,12 @@ function cra_generate_claim_review_text($post) {
     $post_title = get_the_title($post->ID);
     
     if ($is_fact_check) {
-        $claim_reviewed = cra_extract_claim_from_title($post_title);
+        $claim_reviewed = asdcr_extract_claim_from_title($post_title);
     } else {
         // Verificar si está habilitada la conversión
-        $convert_titles = get_option('cra_convert_titles', true);
+        $convert_titles = get_option('asdcr_convert_titles', true);
         if ($convert_titles) {
-            $claim_reviewed = cra_negacion_a_afirmacion_simple($post_title);
+            $claim_reviewed = asdcr_negacion_a_afirmacion_simple($post_title);
             if ($claim_reviewed === null) {
                 $claim_reviewed = $post_title;
             }
@@ -417,13 +449,13 @@ function cra_generate_claim_review_text($post) {
 }
 
 // First, remove the content filter
-remove_filter('the_content', 'cra_generate_claim_review');
+remove_filter('the_content', 'asdcr_generate_claim_review');
 
 // Add the wp_head action
-add_action('wp_head', 'cra_output_claim_review_schema', 99);
+add_action('wp_head', 'asdcr_output_claim_review_schema', 99);
 
 // Create new function to output schema in head
-function cra_output_claim_review_schema() {
+function asdcr_output_claim_review_schema() {
     // Only run on single posts
     if (!is_singular()) {
         return;
@@ -432,36 +464,36 @@ function cra_output_claim_review_schema() {
     global $post;
     
     // Get the tags as arrays
-    $fact_check_tags = get_option('cra_fact_check_tag', array());
-    $debunk_tags = get_option('cra_debunk_tag', array());
+    $fact_check_tags = get_option('asdcr_fact_check_tag', array());
+    $debunk_tags = get_option('asdcr_debunk_tag', array());
     
     // Ensure we have arrays
     $fact_check_tags = is_array($fact_check_tags) ? $fact_check_tags : array($fact_check_tags);
     $debunk_tags = is_array($debunk_tags) ? $debunk_tags : array($debunk_tags);
     
     // Check for fact check or debunk tags
-    $fact_check_taxonomy = get_option('cra_taxonomy_fact_check');
-    $debunk_taxonomy = get_option('cra_taxonomy_debunk');
+    $fact_check_taxonomy = get_option('asdcr_taxonomy_fact_check');
+    $debunk_taxonomy = get_option('asdcr_taxonomy_debunk');
     
-    $is_fact_check = cra_has_any_term($fact_check_tags, $fact_check_taxonomy, $post->ID);
-    $is_debunk = cra_has_any_term($debunk_tags, $debunk_taxonomy, $post->ID);
+    $is_fact_check = asdcr_has_any_term($fact_check_tags, $fact_check_taxonomy, $post->ID);
+    $is_debunk = asdcr_has_any_term($debunk_tags, $debunk_taxonomy, $post->ID);
     
     if (!$is_fact_check && !$is_debunk) {
         return;
     }
 
     // Extract rating
-    $rating_value = cra_extract_rating($post);
+    $rating_value = asdcr_extract_rating($post);
     
     if (!$rating_value) {
         return;
     }
     
     // Get claim reviewed text
-    $claim_reviewed = cra_generate_claim_review_text($post);
+    $claim_reviewed = asdcr_generate_claim_review_text($post);
 
     // Check for manual claim review
-    $manual_claim_review = get_post_meta($post->ID, 'cra_manual_claim_review', true);
+    $manual_claim_review = get_post_meta($post->ID, 'asdcr_manual_claim_review', true);
     if (!empty($manual_claim_review)) {
         $claim_reviewed = $manual_claim_review;
     }
@@ -474,7 +506,7 @@ function cra_output_claim_review_schema() {
         preg_match('/^([^:|,]+)/', $post->post_title, $matches);
         $claim_author = isset($matches[1]) ? trim($matches[1]) : 'Desconocido';
     } else {
-        $claim_author = get_option('cra_debunk_author', 'Social media');
+        $claim_author = get_option('asdcr_debunk_author', 'Social media');
     }
     
     // Build itemReviewed object
@@ -484,7 +516,7 @@ function cra_output_claim_review_schema() {
     );
 
     // Only add author if not disabled
-    if (!get_option('cra_disable_claim_author', false)) {
+    if (!get_option('asdcr_disable_claim_author', false)) {
         $item_reviewed['author'] = array(
             '@type' => 'Person',
             'name' => $claim_author
@@ -500,16 +532,16 @@ function cra_output_claim_review_schema() {
         'itemReviewed' => $item_reviewed,
         'author' => array(
             '@type' => 'Organization',
-            'name' => get_option('cra_organization_name'),
+            'name' => get_option('asdcr_organization_name'),
             'logo' => array(
                 '@type' => 'ImageObject',
-                'url' => get_option('cra_organization_logo')
+                'url' => get_option('asdcr_organization_logo')
             )
         ),
         'reviewRating' => array(
             '@type' => 'Rating',
             'ratingValue' => $rating_value['rating_value'],
-            'bestRating' => count(get_option('cra_ratings')),
+            'bestRating' => count(get_option('asdcr_ratings')),
             'worstRating' => 1,
             'alternateName' => $rating_value['tag_name']
         )
@@ -523,8 +555,8 @@ function cra_output_claim_review_schema() {
 }
 
 // Add Meta Box to post editor
-function cra_add_meta_box() {
-    $post_type = get_option('cra_post_type');
+function asdcr_add_meta_box() {
+    $post_type = get_option('asdcr_post_type');
     if (empty($post_type) || !post_type_exists($post_type)) {
         return;
     }
@@ -532,18 +564,18 @@ function cra_add_meta_box() {
     // Simplemente agregar el meta box al tipo de post correcto
     // Las verificaciones de título y taxonomías se harán en el render
     add_meta_box(
-        'cra_manual_claim_review',
+        'asdcr_manual_claim_review',
         'ClaimReview - Descripción de lo que estás chequeando ',
-        'cra_render_meta_box',
+        'asdcr_render_meta_box',
         $post_type,
         'normal',
         'high'
     );
 }
-add_action('add_meta_boxes', 'cra_add_meta_box');
+add_action('add_meta_boxes', 'asdcr_add_meta_box');
 
 // Render Meta Box content
-function cra_render_meta_box($post) {
+function asdcr_render_meta_box($post) {
     // Verificar si el post tiene título aquí
     if (empty($post->post_title)) {
         echo '<p class="description">La opción para corregir la frase para ClaimReview estará disponible después de guardar el título del post y actualizar la página.</p>';
@@ -551,14 +583,14 @@ function cra_render_meta_box($post) {
     }
     
     // Verificar las taxonomías aquí donde ya están cargadas
-    $fact_check_tags = get_option('cra_fact_check_tag', array());
-    $debunk_tags = get_option('cra_debunk_tag', array());
+    $fact_check_tags = get_option('asdcr_fact_check_tag', array());
+    $debunk_tags = get_option('asdcr_debunk_tag', array());
     
-    $fact_check_taxonomy = get_option('cra_taxonomy_fact_check');
-    $debunk_taxonomy = get_option('cra_taxonomy_debunk');
+    $fact_check_taxonomy = get_option('asdcr_taxonomy_fact_check');
+    $debunk_taxonomy = get_option('asdcr_taxonomy_debunk');
     
-    $is_fact_check = cra_has_any_term($fact_check_tags, $fact_check_taxonomy, $post->ID);
-    $is_debunk = cra_has_any_term($debunk_tags, $debunk_taxonomy, $post->ID);
+    $is_fact_check = asdcr_has_any_term($fact_check_tags, $fact_check_taxonomy, $post->ID);
+    $is_debunk = asdcr_has_any_term($debunk_tags, $debunk_taxonomy, $post->ID);
     
     if (!$is_fact_check && !$is_debunk) {
         echo '<p class="description">Este post no está marcado como chequeo ni como verificación.</p>';
@@ -566,21 +598,21 @@ function cra_render_meta_box($post) {
     }
     
     // Add nonce for security
-    wp_nonce_field('cra_manual_claim_review_nonce', 'cra_manual_claim_review_nonce');
+    wp_nonce_field('asdcr_manual_claim_review_nonce', 'asdcr_manual_claim_review_nonce');
     
     // Get saved value if exists
-    $manual_claim = get_post_meta($post->ID, 'cra_manual_claim_review', true);
+    $manual_claim = get_post_meta($post->ID, 'asdcr_manual_claim_review', true);
     
     // If no manual claim exists, calculate it
     if (empty($manual_claim)) {
-        $manual_claim = cra_generate_claim_review_text($post);
+        $manual_claim = asdcr_generate_claim_review_text($post);
     }
     
     ?>
-    <div class="cra-meta-box-container">
+    <div class="asdcr-meta-box-container">
         <textarea 
-            id="cra_manual_claim_review" 
-            name="cra_manual_claim_review" 
+            id="asdcr_manual_claim_review" 
+            name="asdcr_manual_claim_review" 
             class="widefat" 
             rows="3"
             style="width: 100%"
@@ -592,7 +624,7 @@ function cra_render_meta_box($post) {
         </p>
         <?php 
         // Show automatically calculated claim for reference
-        $auto_claim = cra_generate_claim_review_text($post);
+        $auto_claim = asdcr_generate_claim_review_text($post);
         if ($auto_claim !== $manual_claim) {
             echo '<p class="description">';
             echo '<strong>Descripción generada automáticamente:</strong><br>';
@@ -605,14 +637,14 @@ function cra_render_meta_box($post) {
 }
 
 // Save Meta Box data
-function cra_save_meta_box($post_id) {
+function asdcr_save_meta_box($post_id) {
     // Check if nonce is set
-    if (!isset($_POST['cra_manual_claim_review_nonce'])) {
+    if (!isset($_POST['asdcr_manual_claim_review_nonce'])) {
         return;
     }
 
     // Verify nonce
-    if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['cra_manual_claim_review_nonce'])), 'cra_manual_claim_review_nonce')){
+    if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['asdcr_manual_claim_review_nonce'])), 'asdcr_manual_claim_review_nonce')){
         return;
     }
 
@@ -627,60 +659,45 @@ function cra_save_meta_box($post_id) {
     }
 
     // Get the manual claim review value
-    $manual_claim = isset($_POST['cra_manual_claim_review']) ? 
-        sanitize_textarea_field(wp_unslash($_POST['cra_manual_claim_review'])) : '';
+    $manual_claim = isset($_POST['asdcr_manual_claim_review']) ? 
+        sanitize_textarea_field(wp_unslash($_POST['asdcr_manual_claim_review'])) : '';
 
     // Update or delete the meta field
     if (!empty($manual_claim)) {
-        update_post_meta($post_id, 'cra_manual_claim_review', $manual_claim);
+        update_post_meta($post_id, 'asdcr_manual_claim_review', $manual_claim);
     } else {
-        delete_post_meta($post_id, 'cra_manual_claim_review');
+        delete_post_meta($post_id, 'asdcr_manual_claim_review');
     }
 }
-add_action('save_post', 'cra_save_meta_box');
+add_action('save_post', 'asdcr_save_meta_box');
 
-// Add this to your existing PHP file
-function cra_admin_footer_scripts() {
-    ?>
-    <script>
-    jQuery(document).ready(function($) {
-        function updateTaxonomyTerms(taxonomy, selectElement) {
-            $.post(ajaxurl, {
-                action: 'get_taxonomy_terms',
-                taxonomy: taxonomy,
-                nonce: <?php echo wp_json_encode(wp_create_nonce('get_taxonomy_terms')); ?>
-            }, function(response) {
-                if (response.success) {
-                    selectElement.empty();
-                    response.data.forEach(function(term) {
-                        var option = new Option(
-                            wp.escapeHtml(term.name), 
-                            wp.escapeHtml(term.slug)
-                        );
-                        selectElement.append(option);
-                    });
-                }
-            });
-        }
+function asdcr_enqueue_admin_scripts($hook) {
+    // Only load on our plugin's settings page
+    if ('settings_page_asdcr-settings' !== $hook) {
+        return;
+    }
+    
+    // Register and enqueue our admin JavaScript
+    wp_register_script(
+        'asdcr-admin-script',
+        plugins_url('js/admin.js', __FILE__),
+        array('jquery'),
+        '1.0.0',
+        true
+    );
 
-        $('#cra_taxonomy_fact_check').on('change', function() {
-            updateTaxonomyTerms($(this).val(), $('select[name="cra_fact_check_tag[]"]'));
-        });
+    // Localize the script with our data
+    wp_localize_script('asdcr-admin-script', 'asdcrAdmin', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('get_taxonomy_terms')
+    ));
 
-        $('#cra_taxonomy_debunk').on('change', function() {
-            updateTaxonomyTerms($(this).val(), $('select[name="cra_debunk_tag[]"]'));
-        });
-
-        $('#cra_rating_taxonomy').on('change', function() {
-            updateTaxonomyTerms($(this).val(), $('select[name="cra_ratings[]"]'));
-        });
-    });
-    </script>
-    <?php
+    wp_enqueue_script('asdcr-admin-script');
 }
-add_action('admin_footer-settings_page_cra-settings', 'cra_admin_footer_scripts');
+add_action('admin_enqueue_scripts', 'asdcr_enqueue_admin_scripts');
 
-function cra_get_taxonomy_terms_ajax() {
+
+function asdcr_get_taxonomy_terms_ajax() {
     check_ajax_referer('get_taxonomy_terms', 'nonce');
     
     if (!current_user_can('manage_options')) {
@@ -710,6 +727,6 @@ function cra_get_taxonomy_terms_ajax() {
 
     wp_send_json_success($terms_array);
 }
-add_action('wp_ajax_get_taxonomy_terms', 'cra_get_taxonomy_terms_ajax');
+add_action('wp_ajax_get_taxonomy_terms', 'asdcr_get_taxonomy_terms_ajax');
 
 ?>
